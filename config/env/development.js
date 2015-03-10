@@ -2,7 +2,7 @@ var port = 1337;
 
 module.exports = {
 	port: port,
-	db: 'mongodb://localhost/todos',
+	db: 'mongodb://localhost/snaphuntapi',
 	facebook: {
 		clientID: '513828288756645',
 		clientSecret: '2d7cc991efddb864e9af61f307980b9a',
@@ -13,4 +13,5 @@ module.exports = {
 		clientSecret: 'EAiPTjPYLX5nrkpRtxYQflbWpRTqqLwwBHRLh7WpdQ1P69Tre6',
 		callbackURL: 'http://localhost:'+ port +'/oauth/twitter/callback'
 	}
+    // TODO: ADD GOOGLE?
 };

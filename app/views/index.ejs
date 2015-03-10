@@ -7,14 +7,16 @@
 <body>
     <h1><%= title %></h1>
 
-    <% if ( user ) { %>
-		<h2>Hello <%=user%> </h2>
-		<a href="/logout">Logout</a>
-	<% } else { %>
-		<a href="/register">Register</a>
-		<a href="/login">Login</a>
-	<% } %>
 
-    <img src="img/logo.jpg" alt="Hack Hands logo">
+    <img src="img/sh_logo.png" alt="Snaphunt logo" height="148" width="125" align="left">
+
+    <% if ( user ) { %>
+    <h2>Hello <%=user%> </h2>
+    <a href="/logout">Logout</a>
+    <% } else { %>
+    <a href="/register">Register</a>
+    <a href="/login">Login</a>
+    <% } %>
+
 </body>
 </html>

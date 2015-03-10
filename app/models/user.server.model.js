@@ -1,3 +1,7 @@
+// User Model with Authentication
+
+//TODO: salt password
+
 var mongoose = require('mongoose'),
 	crypto = require('crypto'),
 	Schema = mongoose.Schema;
@@ -10,11 +14,13 @@ var UserSchema = new Schema({
 		trim: true,
 		unique: true
 	},
+    profilePhoto: {},
 	password: String,
 	provider: String,
 	providerId: String,
 	providerData: {},
-	todos: {}//we will use this in the next tutorial to store TODOs
+	games: {}, // This will store current games
+    invitations: {}
 });
 
 UserSchema.pre('save', 

@@ -6,12 +6,15 @@ module.exports = function(app) {
 
 	app.route('/users/:userId').get(users.read).put(users.update).delete(users.delete);
 
+    // This sets the found user in the request (req) object, if user is found.
 	app.param('userId', users.userByID);
 
 	app.route('/register')
 		.get(users.renderRegister)
 		.post(users.register);
 
+    // TODO: Return 401 on response to authentication failure
+    // No need to render a login screen.
 	app.route('/login')
 		.get(users.renderLogin)
 		.post(passport.authenticate('local', {

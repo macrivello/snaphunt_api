@@ -3,7 +3,8 @@ var config = require('./config'),
 	bodyParser = require('body-parser'),
 	passport = require('passport'),
 	flash = require('connect-flash'),
-	session = require('express-session');
+	session = require('express-session'),
+    morgan = require('morgan');
 
 module.exports = function() {
 	var app = express();
@@ -14,12 +15,17 @@ module.exports = function() {
 
 	app.use(bodyParser.json());
 
+    // Log all request in the Apache combined format to STDOUT
+    app.use(morgan('combined'));
+
+    // TODO: Is this necessary for REST API?
 	app.use(session({
 		saveUninitialized: true,
 		resave: true,
 		secret: 'OurSuperSecretCookieSecret'
 	}));
 
+    // Setup page rendering. NOT NEEDED FOR API
 	app.set('views', './app/views');
 	app.set('view engine', 'ejs');
 
@@ -27,6 +33,7 @@ module.exports = function() {
 	app.use(passport.initialize());
 	app.use(passport.session());
 
+    // Register routes
 	require('../app/routes/index.server.routes.js')(app);
 	require('../app/routes/users.server.routes.js')(app);
 
