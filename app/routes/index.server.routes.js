@@ -1,4 +1,6 @@
-module.exports = function(app) {
+module.exports = function(router) {
     var index = require('../controllers/index.server.controller');
-    app.get('/', index.render);
+    router.get('/', index.render);
+
+    return router;
 };

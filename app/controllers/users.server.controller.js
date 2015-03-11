@@ -1,5 +1,6 @@
 var User = require('mongoose').model('User'),
-	passport = require('passport');
+	passport = require('passport'),
+    auth = require('./auth.server.controller.js');
 
 var getErrorMessage = function(err) {
 	var message = '';
@@ -23,6 +24,7 @@ var getErrorMessage = function(err) {
 	return message;
 };
 
+// I shouldn't ever need to render a login page.
 exports.renderLogin = function(req, res, next) {
 	if (!req.user) {
 		res.render('login', {
@@ -142,11 +144,13 @@ exports.read = function(req, res) {
 };
 
 exports.userByID = function(req, res, next, id) {
+    console.log('userById');
 	User.findOne({
 			_id: id
 		}, 
 		function(err, user) {
 			if (err) {
+                console.log('User.findOne error.');
 				return next(err);
 			}
 			else {
@@ -177,4 +181,17 @@ exports.delete = function(req, res, next) {
 			res.json(req.user);
 		}
 	})
+};
+
+// User is passed in after validated from passport authenticate call
+exports.updateAuthToken = function (req, res, next, user) {
+    if (user) {
+        var token = auth.generateAuthToken(user);
+        if (token) {
+            User.findByIdAndUpdate(user._id, { authToken: token }, function (err, user) {
+                if (err) next(err);
+                res.json(user);
+            });
+        }
+    }
 };

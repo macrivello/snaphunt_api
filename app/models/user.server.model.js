@@ -1,19 +1,22 @@
 // User Model with Authentication
 
-//TODO: salt password
+//TODO: salt password, Add Token to user field.
 
 var mongoose = require('mongoose'),
 	crypto = require('crypto'),
 	Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
-	name: String,
 	email: String,
 	username: {
 		type: String,
 		trim: true,
 		unique: true
 	},
+    authToken: {
+        type: String,
+        index: true
+    },
     profilePhoto: {},
 	password: String,
 	provider: String,
