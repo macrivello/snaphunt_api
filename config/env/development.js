@@ -1,6 +1,6 @@
 var port = 1337;
-var accessKeyId = "AKIAIH6VZFD4OP3HLRSA";
-var secretAccessKey = "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";
+var accessKeyId = "AKIAJDQANPZGLGXAV4IA";
+var secretAccessKey = "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";
 var region = "us-west-1";
 var sslEnabled = true;
 
