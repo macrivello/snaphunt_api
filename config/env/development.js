@@ -1,8 +1,9 @@
-var port = 1337;
+var port = 3000;
 var accessKeyId = "AKIAJDQANPZGLGXAV4IA";
 var secretAccessKey = "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";
 var region = "us-west-1";
 var sslEnabled = true;
+var gcmApiKey = "AIzaSyCdjQcGX3gBR6pttj1-riWvqFuvrQ_HgXY";
 
 module.exports = {
 	port: port,
@@ -21,6 +22,6 @@ module.exports = {
     accessKeyId: accessKeyId,
     secretAccessKey: secretAccessKey,
     region: region,
-    sslEnabled: sslEnabled
-    // TODO: ADD GOOGLE?
+    sslEnabled: sslEnabled,
+    gcmApiKey: gcmApiKey
 };

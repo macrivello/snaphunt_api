@@ -17,6 +17,7 @@ var UserSchema = new Schema({
         type: String,
         index: true
     },
+    gcmRegId: String,
     profilePhoto: {},
 	password: String,
 	provider: String,

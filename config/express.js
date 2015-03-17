@@ -1,3 +1,5 @@
+var Promise = require('bluebird');
+
 var config = require('./config'),
 	express = require('express'),
 	bodyParser = require('body-parser'),
@@ -13,6 +15,7 @@ module.exports = function() {
     var router = express.Router();
 
     var auth = require('../app/controllers/auth.server.controller.js');
+    var gcm = require('../app/controllers/gcm.server.controller.js');
 
     // Configure AWS SDK
     AWS.config.update({accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey,
@@ -29,11 +32,11 @@ module.exports = function() {
     // Log all request in the Apache combined format to STDOUT
     app.use(morgan('combined'));
 
-    app.use(session({
-		saveUninitialized: true,
-		resave: true,
-		secret: 'secretCoookie!?'
-    }));
+    //app.use(session({
+		//saveUninitialized: true,
+		//resave: true,
+		//secret: 'secretCoookie!?'
+    //}));
 
     // Setup page rendering. NOT NEEDED FOR API
 	app.set('views', './app/views');
@@ -49,9 +52,21 @@ module.exports = function() {
 	require('../app/routes/index.server.routes.js')(app);
     var userApi = require('../app/routes/users.server.routes.js')(router);
 
+    /*
+     TESTING ROUTEs
+     */
+    app.post('/test/gcm/push', function(req, res, next) {
+        // Push message to phone
+        var id = req.headers['gcm-reg-id'];
+        gcm.sendGcmMessage(req, res, next, id);
+    });
+
     // CheckAuth on all routes except /login
-    app.use('/api/v1', function (req, res, next) {
-        if (req.path == '/login' || req.path == '/register') {
+    app.all('/api/*', function (req, res, next) {
+        console.log("hitting path: " + req.path);
+
+        var path = req.path;
+        if (path == '/login' || path == '/register' || path.substring(0, 5) == '/test') {
             return next();
         }
         auth.checkAuthToken(req, res, next);

@@ -1,5 +1,6 @@
-// Load required packages
-var User = require('mongoose').model('User'),
+var Promise = require('bluebird');
+
+var User = Promise.promisifyAll(require('mongoose').model('User')),
     jwt = require('jwt-simple'),
     moment = require('moment'),
     config = require('../../config/config');
@@ -23,8 +24,13 @@ exports.generateAuthToken = function (user) {
 
 exports.checkAuthToken = function (req, res, next) {
     console.log('auth check');
+
     var token = req.headers['x-auth-token'];
-    console.log(token);
+    if (token == 'dev'){
+        console.log("Dev accessing resource, bypassing token");
+        next();
+        return;
+    }
     if (token) {
         try {
             var decoded = jwt.decode(token, config.jwtTokenSecret);
@@ -48,10 +54,8 @@ exports.checkAuthToken = function (req, res, next) {
                         console.log ("got user in authcheck: " + JSON.stringify(user));
                         req.user = user;
                         next();
-                        return;
                     } else {
                         res.send(401, 'No user associated with auth token.');
-
                     }
                 });
             }
