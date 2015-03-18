@@ -32,12 +32,6 @@ module.exports = function() {
     // Log all request in the Apache combined format to STDOUT
     app.use(morgan('combined'));
 
-    //app.use(session({
-		//saveUninitialized: true,
-		//resave: true,
-		//secret: 'secretCoookie!?'
-    //}));
-
     // Setup page rendering. NOT NEEDED FOR API
 	app.set('views', './app/views');
 	app.set('view engine', 'ejs');
