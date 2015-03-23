@@ -9,6 +9,8 @@ var _this = this;
 
 exports.sendGcmMessageToGcmID = function (req, res, next, ids) {
     console.log("sendGcmMessageToGcmID");
+    var ids = (ids != null) ? ids : req.headers[config.gcmHeader];
+
     if (!ids) {
         res.status(401).send("Invalid GCM REQ ID");
         return;

@@ -4,6 +4,8 @@ var secretAccessKey = "GczlXwGg50j8C/0LpRYKWdUiMVSrqcQAVqdy+cOg";
 var region = "us-west-1";
 var sslEnabled = true;
 var gcmApiKey = "AIzaSyCdjQcGX3gBR6pttj1-riWvqFuvrQ_HgXY";
+var gcmHeader = 'gcm-reg-id';
+var authHeader = 'x-auth-token';
 
 module.exports = {
 	port: port,
@@ -19,9 +21,11 @@ module.exports = {
 		callbackURL: 'http://localhost:'+ port +'/oauth/twitter/callback'
 	},
     jwtTokenSecret: "(:!snaphunt!:)",
+    authHeader: authHeader,
     accessKeyId: accessKeyId,
     secretAccessKey: secretAccessKey,
     region: region,
     sslEnabled: sslEnabled,
-    gcmApiKey: gcmApiKey
+    gcmApiKey: gcmApiKey,
+    gcmHeader: gcmHeader
 };

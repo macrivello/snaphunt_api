@@ -28,34 +28,10 @@ var getErrorMessage = function(err) {
 	return message;
 };
 
-// I shouldn't ever need to render a login page.
-exports.renderLogin = function(req, res, next) {
-	if (!req.user) {
-		res.render('login', {
-			title: 'Log-in Form',
-			messages: req.flash('error') || req.flash('info')
-		});
-	}
-	else {
-		return res.redirect('/');
-	}
-};
-
-exports.renderRegister = function(req, res, next) {
-	if (!req.user) {
-		res.render('register', {
-			title: 'Register Form',
-			messages: req.flash('error')
-		});
-	}
-	else {
-		return res.redirect('/');
-	}
-};
-
+// TODO: Input validation with appropriate error codes.
 exports.register = function(req, res, next) {
-	if (!req.user) {
-        console.log("Registering User")
+	if (req.body) {
+        console.log("Registering User." + JSON.stringify(req.body));
 		var user = new User(req.body);
 		var message = null;
 		var token = auth.generateAuthToken(user);
@@ -71,9 +47,8 @@ exports.register = function(req, res, next) {
 		user.save(function(err) {
 			if (err) {
 				var message = getErrorMessage(err);
-				req.flash('error', message);
                 console.log("Error saving User in database. " + err);
-                res.status(500).send("Error registering user: " + user);
+                res.status(500).send("Error registering user. " + err);
 				return;
 			}
 
@@ -96,49 +71,38 @@ exports.register = function(req, res, next) {
 	}
 };
 
+exports.login = function(req, res, next) {
+    // TODO: TAKE USERNAME AND PASSWORD.
+    // Update last login, plus... (more?)
+    //find user, call user.authenticate(req.param.password)
+    var username = req.query.username;
+    var password = req.query.password;
+    console.log("Login attempt - " + username + ":" + password);
+    if (!username || !password) {
+        res.send(401, "Username and password params required.");
+        return;
+    }
+    // TODO: validate input
+
+    User.findOneAsync({username : username}).then(function(user) {
+        if (user.authenticate(password)) {
+            res.json(user);
+        } else {
+            res.send(401, "Invalid password");
+        }
+        return;
+    }).catch(function(e) {
+        res.send(401, "Error finding user: "+ username + ". " + e);
+    })
+
+};
+
 exports.logout = function(req, res) {
 	req.logout();
 	res.redirect('/');
 };
 
-exports.saveOAuthUserProfile = function(req, profile, done) {
-	User.findOne({
-			provider: profile.provider,
-			providerId: profile.providerId
-		},
-		function(err, user) {
-			if (err) {
-				return done(err);
-			}
-			else {
-				if (!user) {
-					var possibleUsername = profile.username || ((profile.email) ? profile.email.split('@')[0] : '');
-					User.findUniqueUsername(possibleUsername, null, function(availableUsername) {
-						profile.username = availableUsername;
-						user = new User(profile);
-
-						user.save(function(err) {
-							if (err) {
-								var message = _this.getErrorMessage(err);
-								req.flash('error', message);
-								return res.redirect('/register');
-							}
-
-							return done(err, user);
-						});
-					});
-				}
-				else {
-					return done(err, user);
-				}
-			}
-		}
-	);
-};
-
-
-
-exports.create = function(req, res, next) {	
+exports.create = function(req, res, next) {
 	var user = new User(req.body);
 	user.save(function(err) {
 		if (err) {
@@ -274,4 +238,64 @@ exports.updateGcmRegId = function (req, res, next) {
 
 exports.sendGcmMessage = function (req, res, next) {
     gcm.sendGcmMessageToUserId(req, res, next, req.params.userId);
+};
+
+exports.saveOAuthUserProfile = function(req, profile, done) {
+    User.findOne({
+            provider: profile.provider,
+            providerId: profile.providerId
+        },
+        function(err, user) {
+            if (err) {
+                return done(err);
+            }
+            else {
+                if (!user) {
+                    var possibleUsername = profile.username || ((profile.email) ? profile.email.split('@')[0] : '');
+                    User.findUniqueUsername(possibleUsername, null, function(availableUsername) {
+                        profile.username = availableUsername;
+                        user = new User(profile);
+
+                        user.save(function(err) {
+                            if (err) {
+                                var message = _this.getErrorMessage(err);
+                                req.flash('error', message);
+                                return res.redirect('/register');
+                            }
+
+                            return done(err, user);
+                        });
+                    });
+                }
+                else {
+                    return done(err, user);
+                }
+            }
+        }
+    );
+};
+
+// I shouldn't ever need to render a login page.
+exports.renderLogin = function(req, res, next) {
+    if (!req.user) {
+        res.render('login', {
+            title: 'Log-in Form',
+            messages: req.flash('error') || req.flash('info')
+        });
+    }
+    else {
+        return res.redirect('/');
+    }
+};
+
+exports.renderRegister = function(req, res, next) {
+    if (!req.user) {
+        res.render('register', {
+            title: 'Register Form',
+            messages: req.flash('error')
+        });
+    }
+    else {
+        return res.redirect('/');
+    }
 };

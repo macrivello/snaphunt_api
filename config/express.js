@@ -4,6 +4,7 @@ var config = require('./config'),
 	express = require('express'),
 	bodyParser = require('body-parser'),
 	passport = require('passport'),
+    BasicStrategy = require('passport-http').BasicStrategy,
 	flash = require('connect-flash'),
 	session = require('express-session'),
     morgan = require('morgan'),
@@ -39,9 +40,6 @@ module.exports = function() {
     // Set authToken var
     app.set('jwtTokenSecret', config.jwtTokenSecret);
 
-	app.use(flash());
-	app.use(passport.initialize());
-
     // Register routes to router
 	require('../app/routes/index.server.routes.js')(app);
     var userApi = require('../app/routes/users.server.routes.js')(router);
@@ -51,16 +49,17 @@ module.exports = function() {
      */
     app.post('/test/gcm/push', function(req, res, next) {
         // Push message to phone
-        var id = req.headers['gcm-reg-id'];
-        gcm.sendGcmMessage(req, res, next, id);
+        gcm.sendGcmMessage(req, res, next, null);
     });
 
     // CheckAuth on all routes except /login
-    app.all('/api/*', function (req, res, next) {
+    app.all(function (req, res, next) {
         console.log("hitting path: " + req.path);
 
         var path = req.path;
-        if (path == '/login' || path == '/register' || path.substring(0, 5) == '/test') {
+        //TODO : I dont want the 'api/v1' hardcoded in path
+        if (path == '/api/v1/login' || path == '/api/v1/register' || path == '/api/v1/test') {
+            console.log("here");
             return next();
         }
         auth.checkAuthToken(req, res, next);

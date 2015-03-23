@@ -25,7 +25,7 @@ exports.generateAuthToken = function (user) {
 exports.checkAuthToken = function (req, res, next) {
     console.log('auth check');
 
-    var token = req.headers['x-auth-token'];
+    var token = req.headers[config.authHeader];
     if (token == 'dev'){
         console.log("Dev accessing resource, bypassing token");
         next();
@@ -37,6 +37,7 @@ exports.checkAuthToken = function (req, res, next) {
             console.log('decoded token: ' + JSON.stringify(decoded));
         } catch (err) {
             console.log('Error decoding token. err: ' + err);
+            res.send(401, 'Error decoding token. err: ' + err);
             return;
         }
 

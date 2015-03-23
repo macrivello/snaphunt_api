@@ -3,38 +3,67 @@
 //TODO: salt password, Add Token to user field.
 
 var mongoose = require('mongoose'),
+    userDigest = require('mongoose').model('UserDigest'),
 	crypto = require('crypto'),
 	Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
-	email: String,
+    email: {
+        type: String,
+        required: true,
+        unique: true },
 	username: {
 		type: String,
 		trim: true,
-		unique: true
-	},
+		unique: true,
+        index: true },
     authToken: {
         type: String,
         index: true
     },
-    gcmRegId: String,
-    profilePhoto: {},
+    lastModifed: { type: Date, default: Date.now },
+    phoneNumber : String,
+    gcmRegId: String, //This will need to be an array if users have multiple devices
+    profilePhoto: { type : Schema.ObjectId, ref: 'Photo' },
 	password: String,
 	provider: String,
 	providerId: String,
 	providerData: {},
-	games: {}, // This will store current games
-    invitations: {}
+	games: [{type: Schema.ObjectId, ref: 'Game'}],
+    invitations: [{type: Schema.ObjectId, ref: 'Game'}] // TODO: I should probably have an invitations model
 });
 
-UserSchema.pre('save', 
+// TODO: Send Push notifications on Invitation updates, Update last modifed.
+UserSchema.pre('save',
 	function(next) {
+        // TODO: SALT PASSWORD
 		if (this.password) {
 			var md5 = crypto.createHash('md5');
 			this.password = md5.update(this.password).digest('hex');
 		}
 
-		next();
+        var user = new User(req.body);
+        user.save(function(err) {
+            if (err) {
+                return next(err);
+            }
+            else {
+                res.json(user);
+            }
+        });
+
+        // TODO : Create UserDigest
+        var userDigest = new userDigest( {
+            id : this._id,
+            username : this.username,
+            profilePhoto : this.profilePhoto
+        });
+        userDigest.save(function(err){
+            if (err) {
+                console.log("Error creating userDigest. " + err);
+            }
+        });
+        next();
 	}
 );
 
