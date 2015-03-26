@@ -11,8 +11,7 @@ var GameSchema = new Schema({
     numberOfRounds: { type: Number, default: 10 }, // TODO: Should be points to win, right?
     currentRound: { type: Number, default: 0 }, // '0' will also indicate game has not started
     rounds: [{type: Schema.ObjectId, ref: 'Round'}],
-    players: [{type: Schema.ObjectId, ref: 'UserDigest'}],
-        //“user._ID” : boolean,
+    players: [{type: Schema.ObjectId, ref: 'User'}],
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now },
     timeEnded: Date,
@@ -23,8 +22,13 @@ var GameSchema = new Schema({
 // TODO: Any preprocessing work to do?
 GameSchema.pre('save',
     function(next) {
+        this.timeLastModified = Date.now();
         next();
     }
 );
+
+GameSchema.post('remove', function (doc) {
+    // Remove references
+});
 
 mongoose.model('Game', GameSchema);

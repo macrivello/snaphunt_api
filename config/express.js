@@ -41,8 +41,18 @@ module.exports = function() {
     app.set('jwtTokenSecret', config.jwtTokenSecret);
 
     // Register routes to router
-	require('../app/routes/index.server.routes.js')(app);
-    var userApi = require('../app/routes/users.server.routes.js')(router);
+
+    require('../app/routes/index.server.routes.js')(app);
+    var userRoutes = require('../app/routes/users.server.routes.js')(router);
+    var gameRoutes = require('../app/routes/games.server.routes.js')(router);
+    //var photoRoutes = require('../app/routes/photos.server.routes.js')(router);
+    //var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
+    //var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
+
+    // Register routes on base url
+    app.use('/api/v1', auth.checkAuthToken, router);
+
+	app.use(express.static('./public'));
 
     /*
      TESTING ROUTEs
@@ -51,24 +61,6 @@ module.exports = function() {
         // Push message to phone
         gcm.sendGcmMessage(req, res, next, null);
     });
-
-    // CheckAuth on all routes except /login
-    app.all(function (req, res, next) {
-        console.log("hitting path: " + req.path);
-
-        var path = req.path;
-        //TODO : I dont want the 'api/v1' hardcoded in path
-        if (path == '/api/v1/login' || path == '/api/v1/register' || path == '/api/v1/test') {
-            console.log("here");
-            return next();
-        }
-        auth.checkAuthToken(req, res, next);
-    });
-
-    // Register routes on base url
-    app.use('/api/v1', userApi);
-
-	app.use(express.static('./public'));
 
 	return app;
 };

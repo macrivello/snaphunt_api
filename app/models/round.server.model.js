@@ -7,14 +7,15 @@ var RoundSchema = new Schema({
     active: {type: Boolean, default: false},
     themes: [{type: Schema.ObjectId, ref: 'Theme'}],
     selectedTheme: {type: Schema.ObjectId, ref: 'Theme'},
-    judge: {type: Schema.ObjectId, ref: 'UserDigest'},
-    winner: {type: Schema.ObjectId, ref: 'UserDigest'},
+    judge: {type: Schema.ObjectId, ref: 'User'},
+    winner: {type: Schema.ObjectId, ref: 'User'},
     photos:[{type: Schema.ObjectId, ref: 'Photo'}],
     winningPhoto: {type: Schema.ObjectId, ref: 'Photo'},
     timeCreated: { type: Date, default: Date.now },
     timeLastModifed: { type: Date, default: Date.now },
     timeEnded: Date,
-    endTime: Date
+    roundEnd: Date,
+    allPhotosSubmitted: {type: Boolean, default: false}
 });
 
 // TODO: Any preprocessing work to do?
@@ -23,5 +24,11 @@ RoundSchema.pre('save',
         next();
     }
 );
+
+
+RoundSchema.post('remove', function (doc) {
+    // Remove references
+});
+
 
 mongoose.model('Round', RoundSchema);

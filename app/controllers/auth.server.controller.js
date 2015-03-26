@@ -1,6 +1,8 @@
 var Promise = require('bluebird');
 
-var User = Promise.promisifyAll(require('mongoose').model('User')),
+var mongoose = Promise.promisifyAll(require('mongoose'),
+    User = require('mongoose').model('User')),
+    UserDigest = require('mongoose').model('UserDigest'),
     jwt = require('jwt-simple'),
     moment = require('moment'),
     config = require('../../config/config');
@@ -12,7 +14,7 @@ exports.generateAuthToken = function (user) {
         console.log("ERROR GENERATING AUTH TOKEN, INVALID USER OBJECT");
         return;
     }
-    console.log('generateAuthToken user: ' + JSON.stringify(user));
+    console.log('generateAuthToken user: ' + user.username);
     var expires = moment().add('days', 7).valueOf();
     var token = jwt.encode({
         iss: user._id,
@@ -23,7 +25,12 @@ exports.generateAuthToken = function (user) {
 };
 
 exports.checkAuthToken = function (req, res, next) {
-    console.log('auth check');
+    console.log('auth check. path: ' + req.path);
+    var path = req.path;
+    if(path == '/login' || path == '/register'){
+        console.log("bypassing auth check");
+        return next();
+    }
 
     var token = req.headers[config.authHeader];
     if (token == 'dev'){
@@ -45,20 +52,17 @@ exports.checkAuthToken = function (req, res, next) {
             if (decoded.exp <= Date.now()) {
                 res.send(400, 'Access token has expired');
             } else {
-                User.findOne({ _id: decoded.iss }, function(err, user) {
-                    if (err) {
-                        res.send(401, 'Error in User.findOne. err: ' + err);
-                        return;
-                    }
-
-                    if (user) {
-                        console.log ("got user in authcheck: " + JSON.stringify(user));
+                User.findOneAsync({ _id: decoded.iss })
+                    .then(function(user) {
+                        return user.saveAsync();
+                    }).then(function(user){
+                        console.log("Setting user %s in request object.", user.username);
                         req.user = user;
-                        next();
-                    } else {
-                        res.send(401, 'No user associated with auth token.');
-                    }
-                });
+                        return next();
+                    }).catch(function (err) {
+                        res.status(401).send('Error setting user in request: ' + err);
+                        return;
+                    });
             }
 
         } catch (err) {

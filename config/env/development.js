@@ -9,7 +9,7 @@ var authHeader = 'x-auth-token';
 
 module.exports = {
 	port: port,
-	db: 'mongodb://localhost/snaphuntapi',
+	db: 'mongodb://localhost/snaphuntDB',
 	facebook: {
 		clientID: '513828288756645',
 		clientSecret: '2d7cc991efddb864e9af61f307980b9a',

@@ -1,11 +1,13 @@
 // User Model with Authentication
 
 //TODO: salt password, Add Token to user field.
+var Promise = require('bluebird');
 
-var mongoose = require('mongoose'),
-    userDigest = require('mongoose').model('UserDigest'),
-	crypto = require('crypto'),
-	Schema = mongoose.Schema;
+var mongoose = Promise.promisifyAll(require('mongoose')),
+    UserDigest = require('mongoose').model('UserDigest'),
+    bcrypt = Promise.promisifyAll(require('bcrypt')),
+	Schema = mongoose.Schema,
+    SALT_WORK_FACTOR = 10; // This was completely arbitrary
 
 var UserSchema = new Schema({
     email: {
@@ -21,7 +23,9 @@ var UserSchema = new Schema({
         type: String,
         index: true
     },
-    lastModifed: { type: Date, default: Date.now },
+    userDigest: { type: Schema.ObjectId, ref: 'UserDigest'},
+    timeCreated: { type: Date, default: Date.now },
+    timeLastModifed: { type: Date, default: Date.now },
     phoneNumber : String,
     gcmRegId: String, //This will need to be an array if users have multiple devices
     profilePhoto: { type : Schema.ObjectId, ref: 'Photo' },
@@ -33,45 +37,40 @@ var UserSchema = new Schema({
     invitations: [{type: Schema.ObjectId, ref: 'Game'}] // TODO: I should probably have an invitations model
 });
 
-// TODO: Send Push notifications on Invitation updates, Update last modifed.
+// TODO: Send Push notifications on Invitation updates
 UserSchema.pre('save',
 	function(next) {
-        // TODO: SALT PASSWORD
-		if (this.password) {
-			var md5 = crypto.createHash('md5');
-			this.password = md5.update(this.password).digest('hex');
-		}
+        var user = this; // 'this' refers to the document that is being saved
+        user.lastModifed = Date.now();
 
-        var user = new User(req.body);
-        user.save(function(err) {
-            if (err) {
-                return next(err);
-            }
-            else {
-                res.json(user);
-            }
-        });
+        if (user.isModified('_id') || user.isModified('username') || user.isModified('profilePhoto')) {
+            console.log("creating userdigest for: " + user.username);
 
-        // TODO : Create UserDigest
-        var userDigest = new userDigest( {
-            id : this._id,
-            username : this.username,
-            profilePhoto : this.profilePhoto
-        });
-        userDigest.save(function(err){
-            if (err) {
-                console.log("Error creating userDigest. " + err);
-            }
-        });
-        next();
+            // Update userDigest
+            var userDigest = new UserDigest({
+                id: user._id,
+                username: user.username,
+                profilePhoto: user.profilePhoto
+            });
+
+            userDigest.saveAsync()
+                .spread(function (savedUserDigest, numAffected) {
+                    user.userDigest = savedUserDigest._id;
+                    user.lastModifed = Date.now();
+                    return next();
+                }).catch(function (err) {
+                    console.log("Error: " + err);
+                    return next(err);
+                });
+        } else {
+            return next();
+        }
 	}
 );
 
-UserSchema.methods.authenticate = function(password) {
-	var md5 = crypto.createHash('md5');
-	md5 = md5.update(password).digest('hex');
 
-	return this.password === md5;
+UserSchema.methods.authenticate = function(password, cb) {
+    return bcrypt.compareSync(password, this.password);
 };
 
 UserSchema.statics.findUniqueUsername = function(username, suffix, callback) {
@@ -95,5 +94,9 @@ UserSchema.statics.findUniqueUsername = function(username, suffix, callback) {
 		}
 	);
 };
+
+UserSchema.post('remove', function (doc) {
+    // Remove references
+});
 
 mongoose.model('User', UserSchema);

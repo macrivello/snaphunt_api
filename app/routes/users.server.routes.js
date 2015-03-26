@@ -1,9 +1,8 @@
-var users = require('../../app/controllers/users.server.controller'),
-	passport = require('passport');
+var users = require('../../app/controllers/users.server.controller');
 
 module.exports = function(router) {
-    router.route('/users').post(users.register)
-        .get(users.list);
+    router.route('/users')
+        .get(users.list); // ADMIN
 
     router.route('/users/:userId')
         .get(users.read)
@@ -11,17 +10,15 @@ module.exports = function(router) {
         .delete(users.delete);
 
     router.route('/register')
-		.get(users.renderRegister)
 		.post(users.register);
 
     router.route('/login')
         .post(users.login);
 
-    router.route('/gcmregid').put(users.updateGcmRegId);
-
     // TESTING PUSHING TO USERID
     router.route('/push/:userId').get(users.sendGcmMessage);
 
+    // TODO: Revisit. What do I need to do on logout?
     router.get('/logout', users.logout);
 
     /**

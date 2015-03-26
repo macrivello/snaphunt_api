@@ -5,7 +5,7 @@ var mongoose = require('mongoose'),
 
 var UserDigestSchema = new Schema({
     username: String,
-    id: String,
+    userId: Schema.ObjectId,
     profilePhoto: { type : Schema.ObjectId, ref: 'Photo' }
 });
 
@@ -15,6 +15,10 @@ UserDigestSchema.pre('save',
         next();
     }
 );
+
+UserDigestSchema.post('remove', function (doc) {
+    // Remove references
+});
 
 UserDigestSchema.statics.findUser = function(callback) {
     var _this = this;
