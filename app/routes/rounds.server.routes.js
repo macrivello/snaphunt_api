@@ -6,7 +6,7 @@ module.exports = function(router) {
         .get(rounds.list);
 
     router.route('/rounds/:roundId')
-        .post(rounds.read);
+        .get(rounds.read);
 
     // updates req object with req.round
     router.param('roundId', rounds.getRound);

@@ -12,8 +12,7 @@ var PhotoSchema = new Schema({
     hash: String,
     hashThumb: String,
     theme: [{type: Schema.ObjectId, ref: 'Theme'}],
-    timeCreated: { type: Date, default: Date.now },
-    timeLastModifed: { type: Date, default: Date.now }
+    timeCreated: { type: Date, default: Date.now }
 });
 
 // TODO: Any preprocessing work to do?

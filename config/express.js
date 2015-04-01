@@ -3,10 +3,6 @@ var Promise = require('bluebird');
 var config = require('./config'),
 	express = require('express'),
 	bodyParser = require('body-parser'),
-	passport = require('passport'),
-    BasicStrategy = require('passport-http').BasicStrategy,
-	flash = require('connect-flash'),
-	session = require('express-session'),
     morgan = require('morgan'),
     AWS = require('aws-sdk');
 

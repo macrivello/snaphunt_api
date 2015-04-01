@@ -7,11 +7,11 @@ module.exports = function(router) {
         .get(themes.list);
 
     router.route('/themes/:themeId/like')
-        .put(themes.like);
+        .get(themes.like);
     router.route('/themes/:themeId/dislike')
-        .put(themes.dislike);
+        .get(themes.dislike);
     router.route('/themes/:themeId/neutral')
-        .put(themes.neutral);
+        .get(themes.neutral);
 
     router.param('themeId',themes.getTheme);
     return router;
