@@ -165,7 +165,7 @@ exports.update = function(req, res, next) {
 			return next(err);
 		}
 		else {
-			res.json(user);
+			return res.json(user);
 		}
 	});
 };
