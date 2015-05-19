@@ -8,7 +8,6 @@ var mongoose = Promise.promisifyAll(require('mongoose'),
     config = require('../../config/config');
 
 
-
 exports.generateAuthToken = function (user) {
     if (!user || !user._id) {
         console.log("ERROR GENERATING AUTH TOKEN, INVALID USER OBJECT");
@@ -35,8 +34,7 @@ exports.checkAuthToken = function (req, res, next) {
     var token = req.headers[config.authHeader];
     if (token == 'dev'){
         console.log("Dev accessing resource, bypassing token");
-        next();
-        return;
+        return next();
     }
     if (token) {
         try {
@@ -50,15 +48,18 @@ exports.checkAuthToken = function (req, res, next) {
 
         try{
             if (decoded.exp <= Date.now()) {
-                res.send(400, 'Access token has expired');
+                return res.send(400, 'Access token has expired');
             } else {
-                User.findOneAsync({ _id: decoded.iss })
+                User.findOneAsync({ '_id': decoded.iss })
                     .then(function(user) {
+                        console.log("Found user from token: " + JSON.stringify(user));
                         return user.saveAsync();
-                    }).then(function(user){
-                        console.log("Setting user %s in request object.", user.username);
-                        req.user = user;
-                        return next();
+                    }).then(function(u){
+                        // TODO: Investigate why promise is returning JSON array
+                        var username = u[0].username;
+                        console.log("Setting user '%s' in request object.", username);
+                        req.user = u[0];
+                        next();
                     }).catch(function (err) {
                         res.status(401).send('Error setting user in request: ' + err);
                         return;
@@ -67,13 +68,13 @@ exports.checkAuthToken = function (req, res, next) {
 
         } catch (err) {
             console.log('Error looking up user from auth token in DB. err: ' + err);
-            res.status(401).send('Invalid auth token');
+            return res.status(401).send('Invalid auth token');
 
             // Continue handling request
             //return next();
         }
     } else {
-        res.send(401, 'x-auth-token header required to access resource');
+        return res.send(401, 'x-auth-token header required to access resource');
     }
 };
 

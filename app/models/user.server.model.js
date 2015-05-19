@@ -40,6 +40,8 @@ var UserSchema = new Schema({
 // TODO: Send Push notifications on Invitation updates
 UserSchema.pre('save',
 	function(next) {
+        console.log("USER pre-save DB hook");
+
         var user = this; // 'this' refers to the document that is being saved
         user.lastModifed = Date.now();
 

@@ -1,7 +1,7 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    User = Promise.promisifyAll(require('mongoose').model('User')),
+    User = require('mongoose').model('User'),
 	passport = require('passport'),
     auth = require('./auth.server.controller.js'),
     gcm = require('./gcm.server.controller.js'),
@@ -159,12 +159,20 @@ userByID = Promise.method(function(id) {
     );
 });
 
+// TODO: Don't allow certain fields to be updates, such as userID.
+// add this to middleware save hook.
 exports.update = function(req, res, next) {
-	User.findByIdAndUpdate(req.user.id, req.body, function(err, user) {
+    console.log('Update User called. ID: ', req.user._id);
+
+    // TODO: replace 'findbyidandupdate' with another function -- doesn't return upadated doc.
+    User.findByIdAndUpdate(req.user._id, req.body, function(err, user) {
+
 		if (err) {
-			return next(err);
+            console.log('Error updating user.');
+			return res.status(500).send("Error updating user: " + err);
 		}
 		else {
+            console.log('Successfully updated user.');
 			return res.json(user);
 		}
 	});
