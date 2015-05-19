@@ -4,8 +4,8 @@ module.exports = function(router) {
 
     // game/{id}/round/{id}/themes...
     router.route('/themes')
-        .get(themes.list);
-
+        .get(themes.list)
+        .delete(themes.delete);
     router.route('/themes/:themeId/like')
         .get(themes.like);
     router.route('/themes/:themeId/dislike')

@@ -10,7 +10,25 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     eventEmitter = new events.EventEmitter();
 
 exports.list = function(req, res, next) {
-    //return
+    console.log('Listing themes');
+    Theme.find({}, function(err, themes) {
+        if (err) {
+            return next(err);
+        }
+        else {
+            res.json(themes);
+        }
+    });
+};
+
+exports.delete = function(req, res, next) {
+    Theme.remove({}, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send("Deleted themes");
+        }
+    });
 };
 
 exports.like = function(req, res, next) {

@@ -52,7 +52,7 @@ exports.checkAuthToken = function (req, res, next) {
             } else {
                 User.findOneAsync({ '_id': decoded.iss })
                     .then(function(user) {
-                        console.log("Found user from token: " + JSON.stringify(user));
+                        console.log("Found user from token: " + user.username);
                         return user.saveAsync();
                     }).then(function(u){
                         // TODO: Investigate why promise is returning JSON array

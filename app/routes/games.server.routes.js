@@ -4,7 +4,8 @@ module.exports = function(router) {
 
     router.route('/games')
         .post(games.create)
-        .get(games.list); // ADMIN
+        .get(games.list) // ADMIN
+        .delete(games.delete);  // ADMIN
 
     router.route('/games/:gameId')
         .get(games.read)

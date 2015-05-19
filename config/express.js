@@ -42,7 +42,7 @@ module.exports = function() {
     var userRoutes = require('../app/routes/users.server.routes.js')(router);
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
     //var photoRoutes = require('../app/routes/photos.server.routes.js')(router);
-    //var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
+    var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
     //var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
 
     // Register routes on base url
