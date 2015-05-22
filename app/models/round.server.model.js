@@ -4,6 +4,7 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
 var RoundSchema = new Schema({
+    roundNumber: {type: Number, default: 0},
     active: {type: Boolean, default: false},
     themes: [{type: Schema.ObjectId, ref: 'Theme'}],
     selectedTheme: {type: Schema.ObjectId, ref: 'Theme'},

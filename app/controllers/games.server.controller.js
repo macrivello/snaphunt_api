@@ -5,6 +5,7 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Round = Promise.promisifyAll(require('mongoose').model('Round')),
     Photo = Promise.promisifyAll(require('mongoose').model('Photo')),
     User = Promise.promisifyAll(require('mongoose').model('User')),
+    UserDigest = Promise.promisifyAll(require('mongoose').model('UserDigest')),
     Theme = Promise.promisifyAll(require('mongoose').model('Theme')),
     event = require('events'),
     Events = require('../events/events.server'),
@@ -56,7 +57,8 @@ exports.create = function(req, res, next) {
             var r = [];
             console.log("number of rounds: " + game.numberOfRounds);
             for (i = 0; i < game.numberOfRounds; i++) {
-                r.push({themes: themeIds});
+                r.push({roundNumber: i+1,
+                        themes: themeIds});
             }
 
             return Round.createAsync(r);
@@ -116,11 +118,24 @@ exports.getGame = function (req, res, next, gameId){
 
 };
 
+// TODO: populate Rounds and Players fields before returning Game object
 exports.read = function(req, res, next){
+
     if (!req.game)
         return res.status(500).send("Unable to read game.");
 
-    return res.json(req.game);
+    // TODO: populate in one call please
+    Round.populateAsync(req.game, { path: 'rounds'})
+        .then(function(gameWithRounds) {
+            console.log("populated round in Game: " + gameWithRounds._id);
+            return UserDigest.populateAsync(gameWithRounds, {path: 'players'});
+        }).then(function(gameWithRoundsAndPlayers) {
+            console.log("populated players in Game: " + gameWithRoundsAndPlayers._id);
+            return res.json(gameWithRoundsAndPlayers);
+        }).catch(function(err) {
+            console.log("Error populating rounds in Game object.", err);
+            return res.status(500).send("Unable to read game.", err);
+        });
 };
 
 exports.update = function(req, res, next){
@@ -141,6 +156,7 @@ exports.update = function(req, res, next){
         });
 };
 
+// TODO : delete rounds, delete games
 exports.delete = function(req, res, next){
     var game = req.game;
     var user = req.user;
@@ -150,10 +166,10 @@ exports.delete = function(req, res, next){
 
     game.removeAsync()
         .then(function(err){
-            console.log("Successfully updated game.");
+            console.log("Successfully deleted game.");
             return res.json(game);
         }).catch(function(err){
-            return res.status(500).send("Error updating game. " + err);
+            return res.status(500).send("Error deleting game. " + err);
         });
 };
 
@@ -173,7 +189,7 @@ exports.list = function(req, res, next){
         });
 };
 
-exports.delete = function(req, res, next) {
+exports.deleteAll = function(req, res, next) {
     var user = req.user;
     user.games = [];
 

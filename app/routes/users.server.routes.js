@@ -1,4 +1,4 @@
-var users = require('../../app/controllers/users.server.controller');
+var users = require('../../app/controllers/users.server.controller.js');
 
 module.exports = function(router) {
     router.route('/users')

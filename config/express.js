@@ -40,6 +40,7 @@ module.exports = function() {
 
     require('../app/routes/index.server.routes.js')(app);
     var userRoutes = require('../app/routes/users.server.routes.js')(router);
+    var userDigestRoutes = require('../app/routes/userdigest.server.routes.js')(router);
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
     //var photoRoutes = require('../app/routes/photos.server.routes.js')(router);
     var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
