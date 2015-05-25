@@ -5,6 +5,7 @@ var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
     UserDigest = require('mongoose').model('UserDigest'),
+    deepPopulate = require('mongoose-deep-populate'),
     bcrypt = Promise.promisifyAll(require('bcrypt')),
 	Schema = mongoose.Schema,
     SALT_WORK_FACTOR = 10; // This was completely arbitrary
@@ -36,6 +37,10 @@ var UserSchema = new Schema({
 	games: [{type: Schema.ObjectId, ref: 'Game'}],
     invitations: [{type: Schema.ObjectId, ref: 'Game'}] // TODO: I should probably have an invitations model
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+UserSchema.plugin(deepPopulate, null);
 
 // TODO: Send Push notifications on Invitation updates
 UserSchema.pre('save',

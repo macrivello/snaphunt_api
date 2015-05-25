@@ -4,6 +4,7 @@
 // created the changed state. i.e. dont send a push notification to the player who updated the photo.
 
 var mongoose = require('mongoose'),
+    deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema;
 
 var GameSchema = new Schema({
@@ -18,6 +19,10 @@ var GameSchema = new Schema({
     gameOver: { type: Boolean, default: false },
     gameStarted: { type: Boolean, default: false }
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+GameSchema.plugin(deepPopulate, null);
 
 // TODO: Any preprocessing work to do?
 GameSchema.pre('save',

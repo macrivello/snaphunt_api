@@ -97,6 +97,7 @@ exports.create = function(req, res, next) {
         });
 };
 
+// Add Game object with id 'gameId' to request object field, req.game
 exports.getGame = function (req, res, next, gameId){
     console.log("get game");
     if (!gameId) {
@@ -120,22 +121,29 @@ exports.getGame = function (req, res, next, gameId){
 
 // TODO: populate Rounds and Players fields before returning Game object
 exports.read = function(req, res, next){
+    var game = req.game;    // This should be populated by getGame()
 
-    if (!req.game)
+    if (!game)
         return res.status(500).send("Unable to read game.");
 
-    // TODO: populate in one call please
-    Round.populateAsync(req.game, { path: 'rounds'})
-        .then(function(gameWithRounds) {
-            console.log("populated round in Game: " + gameWithRounds._id);
-            return UserDigest.populateAsync(gameWithRounds, {path: 'players'});
-        }).then(function(gameWithRoundsAndPlayers) {
-            console.log("populated players in Game: " + gameWithRoundsAndPlayers._id);
-            return res.json(gameWithRoundsAndPlayers);
-        }).catch(function(err) {
+    // Return game object with rounds and players field populated
+    game.deepPopulate('rounds.themes', 'players', function (err, _game) {
+        if (err) {
             console.log("Error populating rounds in Game object.", err);
             return res.status(500).send("Unable to read game.", err);
-        });
+        }
+
+        return res.json(_game);
+    });
+
+    //Round.populateAsync(req.game, { path: 'rounds'})
+    //    .then(function(gameWithRounds) {
+    //        console.log("populated round in Game: " + gameWithRounds._id);
+    //        return UserDigest.populateAsync(gameWithRounds, {path: 'players'});
+    //    }).then(function(gameWithRoundsAndPlayers) {
+    //        console.log("populated players in Game: " + gameWithRoundsAndPlayers._id);
+    //        return res.json(gameWithRoundsAndPlayers);
+    //    })
 };
 
 exports.update = function(req, res, next){

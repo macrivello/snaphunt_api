@@ -1,6 +1,7 @@
 // Round model
 
 var mongoose = require('mongoose'),
+    deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema;
 
 var RoundSchema = new Schema({
@@ -18,6 +19,10 @@ var RoundSchema = new Schema({
     roundEnd: Date,
     allPhotosSubmitted: {type: Boolean, default: false}
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+RoundSchema.plugin(deepPopulate, null);
 
 // TODO: Any preprocessing work to do?
 RoundSchema.pre('save',

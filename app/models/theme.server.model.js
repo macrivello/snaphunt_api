@@ -1,6 +1,7 @@
 // Theme model
 
 var mongoose = require('mongoose'),
+    deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema,
     random = require('mongoose-random');
 
@@ -13,6 +14,10 @@ var ThemeSchema = new Schema({
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now }
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+ThemeSchema.plugin(deepPopulate, null);
 
 // Required for use of mongoose-random. Adds random value 'r' to schema
 ThemeSchema.plugin(random, { path: 'r' });

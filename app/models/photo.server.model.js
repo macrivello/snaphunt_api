@@ -1,6 +1,7 @@
 // Photo model
 
 var mongoose = require('mongoose'),
+    deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema;
 
 var PhotoSchema = new Schema({
@@ -14,6 +15,10 @@ var PhotoSchema = new Schema({
     theme: [{type: Schema.ObjectId, ref: 'Theme'}],
     timeCreated: { type: Date, default: Date.now }
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+PhotoSchema.plugin(deepPopulate, null);
 
 // TODO: Any preprocessing work to do?
 PhotoSchema.pre('save',

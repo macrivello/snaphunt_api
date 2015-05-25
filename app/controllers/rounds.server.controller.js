@@ -17,6 +17,7 @@ exports.getRound = function (req, res, next, roundId){
     }
 
     // TODO: make sure round is in req.game
+
     // req.game should be valid since there is on a /game/:gameId route
     Round.findByIdAsync(roundId)
         .then(function(round){

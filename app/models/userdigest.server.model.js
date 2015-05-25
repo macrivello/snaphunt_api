@@ -1,6 +1,7 @@
 // UserDigest Model
 
 var mongoose = require('mongoose'),
+    deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema;
 
 var UserDigestSchema = new Schema({
@@ -8,6 +9,10 @@ var UserDigestSchema = new Schema({
     userId: Schema.ObjectId,
     profilePhoto: { type : Schema.ObjectId, ref: 'Photo' }
 });
+
+// Register Plugins.
+// deepPopulate(plugin, options);
+UserDigestSchema.plugin(deepPopulate, null);
 
 // TODO: Any preprocessing work to do?
 UserDigestSchema.pre('save',
