@@ -43,6 +43,7 @@ var UserSchema = new Schema({
 UserSchema.plugin(deepPopulate, null);
 
 // TODO: Send Push notifications on Invitation updates
+// TODO: There are paralell implementations available too. http://mongoosejs.com/docs/middleware.html
 UserSchema.pre('save',
 	function(next) {
         console.log("USER pre-save DB hook");
@@ -61,7 +62,7 @@ UserSchema.pre('save',
             });
 
             userDigest.saveAsync()
-                .spread(function (savedUserDigest, numAffected) {
+                .then(function (savedUserDigest) {
                     user.userDigest = savedUserDigest._id;
                     user.lastModifed = Date.now();
                     return next();
@@ -75,6 +76,24 @@ UserSchema.pre('save',
 	}
 );
 
+UserSchema.post =('remove', function(doc) {
+    console.log('In User remove post hook');
+    var userId = doc._id;
+    var userDigestId = doc.userDigest;
+    if (userDigestId) {
+        User.findByIdAndRemove(userDigestId, function (err, userDigest) {
+            if (err) {
+                console.log("Error deleting UserDigest '%s' for user '%s'.", userDigestId, userId);
+                return next(err);
+            }
+
+            console.log("Deleted UserDigest '%s' for user '%s'.", userDigestId, userId);
+            return next();
+        });
+    } else {
+        console.log("Invalid UserDigest for user '%s'", userId);
+    }
+});
 
 UserSchema.methods.authenticate = function(password, cb) {
     return bcrypt.compareSync(password, this.password);

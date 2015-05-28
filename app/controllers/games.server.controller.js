@@ -11,14 +11,15 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Events = require('../events/events.server'),
     eventEmitter = new event.EventEmitter();
 
-eventEmitter.on(Events.gameCreated, onNewGameCreated);
-
-function onNewGameCreated (game) {
-    console.log("onNewGameCreated");
-}
+//eventEmitter.on(Events.gameCreated, onNewGameCreated);
+//
+//function onNewGameCreated (game) {
+//    console.log("onNewGameCreated");
+//}
 
 //TODO: Assert new user is a player in the game.
 //TODO: Add new game to invitations of other players
+
 exports.create = function(req, res, next) {
     if (!req.body) {
         console.log("Empty request body. Can't create game.");
@@ -73,7 +74,11 @@ exports.create = function(req, res, next) {
 
             var rounds = roundsReturned;
             for (i = 0; i < numRounds; i++) {
-                game.rounds[i] = rounds[i]._id;
+                var round = rounds[i];
+                if (i == 0) {
+                    round.judge = user.userDigest;
+                }
+                game.rounds[i] = round._id;
             }
 
             return game.saveAsync();
@@ -81,13 +86,17 @@ exports.create = function(req, res, next) {
             var game = gameSaved[0];
             console.log("User: " + user.username);
             console.log("New Game created. Game: " + game._id);
-            eventEmitter.emit(Events.gameCreated, game);
+
+            process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
 
             user.games.push(game._id);
 
             return user.saveAsync();
-        }).then(function(user){
+        }).then(function(_user){
+            var user = _user[0];
             console.log("Updated %s with new game.", user.username);
+
+            // TODO: Set as invitation to players. Send out push notifications.
 
             return res.json(game);
         }).catch(function(err){
@@ -186,15 +195,25 @@ exports.list = function(req, res, next){
     if (!user)
         return res.status(500).send("Unable to read user.");
 
-    Game.populateAsync(user, { path: 'games'})
-        .then(function(userWithGamesPopulated){
-            var games = userWithGamesPopulated.games;
-            console.log("Found games \n '%s' \n for user: '%s'", JSON.stringify(games), user.username);
-            return res.json(games)
-        }).catch(function(err){
-            console.log("Error populating games");
-            return res.status(500).send("Unable populating games for %s.", user.username);
-        });
+    user.deepPopulate('games.rounds.themes', 'games.players', function (err, _user) {
+        if (err) {
+            console.log("Error populating populated Game objects.", err);
+            return res.status(500).send("Unable to read game list.", err);
+        }
+
+        var games = _user.games;
+        return res.json(games);
+    });
+
+    //Game.populateAsync(user, { path: 'games'})
+    //    .then(function(userWithGamesPopulated){
+    //        var games = userWithGamesPopulated.games;
+    //        console.log("Found games \n '%s' \n for user: '%s'", JSON.stringify(games), user.username);
+    //        return res.json(games)
+    //    }).catch(function(err){
+    //        console.log("Error populating games");
+    //        return res.status(500).send("Unable populating games for %s.", user.username);
+    //    });
 };
 
 exports.deleteAll = function(req, res, next) {

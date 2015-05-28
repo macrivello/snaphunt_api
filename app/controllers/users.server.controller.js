@@ -2,10 +2,37 @@ var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
     User = require('mongoose').model('User'),
-	passport = require('passport'),
+    UserDigest = require('mongoose').model('UserDigest'),
+    passport = require('passport'),
     auth = require('./auth.server.controller.js'),
     gcm = require('./gcm.server.controller.js'),
-    bcrypt = Promise.promisifyAll(require('bcrypt'));
+    bcrypt = Promise.promisifyAll(require('bcrypt')),
+    event = require('events'),
+    Events = require('../events/events.server'),
+    eventEmitter = new event.EventEmitter();
+
+process.on(Events.gameCreated, onNewGameCreated);
+
+function onNewGameCreated (data) {
+    console.log("Adding new game to players invitations. \n" + JSON.stringify(data));
+    var game = data.game;
+    var userDigestIdOfCreator = data.userDigestIdOfCreator;
+    //
+    //var userIds = [];
+    //for (var userId in game.players) {
+    //}
+    //User.findAsync({'_id': { $in: }}).then(function(users) {
+    //    var ids = [];
+    //    for (user in users){
+    //
+    //    }
+    //    _this.sendGcmMessageToGcmId(req, res, next, ids);
+    //}).catch(function(e) {
+    //    console.log("Error looking up users");
+    //    next(e);
+    //});
+}
+
 
 var SALT_WORK_FACTOR = 10; // This was completely arbitrary
 
