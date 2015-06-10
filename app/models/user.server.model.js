@@ -56,16 +56,17 @@ UserSchema.pre('save',
 
             // Update userDigest
             var userDigest = new UserDigest({
-                id: user._id,
+                userId: user._id,
                 username: user.username,
                 profilePhoto: user.profilePhoto
             });
 
             userDigest.saveAsync()
                 .then(function (savedUserDigest) {
-                    user.userDigest = savedUserDigest._id;
+                    console.log("Setting user's userDigest: " + savedUserDigest[0]._id);
+                    user.userDigest = savedUserDigest[0]._id;
                     user.lastModifed = Date.now();
-                    return next();
+                    next();
                 }).catch(function (err) {
                     console.log("Error: " + err);
                     return next(err);

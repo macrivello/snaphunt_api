@@ -44,12 +44,12 @@ module.exports = function() {
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
     //var photoRoutes = require('../app/routes/photos.server.routes.js')(router);
     var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
-    //var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
+    var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
 
     // Register routes on base url
     app.use('/api/v1', auth.checkAuthToken, router);
 
-	app.use(express.static('./public'));
+    app.use(express.static('./public'));
 
     /*
      TESTING ROUTEs

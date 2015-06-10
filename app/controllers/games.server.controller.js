@@ -11,12 +11,6 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Events = require('../events/events.server'),
     eventEmitter = new event.EventEmitter();
 
-//eventEmitter.on(Events.gameCreated, onNewGameCreated);
-//
-//function onNewGameCreated (game) {
-//    console.log("onNewGameCreated");
-//}
-
 //TODO: Assert new user is a player in the game.
 //TODO: Add new game to invitations of other players
 
@@ -35,7 +29,6 @@ exports.create = function(req, res, next) {
     // TODO: currently just using same three themes for each round
     Theme.findRandom({}, {}, { limit: 3  }).execAsync()
         .then(function(themes) {
-            console.log("random themes? --- " + JSON.stringify(themes));
             if (themes && themes.length < 3) {
                 console.log('Creating new themes');
                 // Create 3 dummy themes
@@ -120,10 +113,9 @@ exports.getGame = function (req, res, next, gameId){
     Game.findByIdAsync(gameId)
         .then(function(game){
             req.game = game;
-            return next();
+            next();
         }).catch(function(err){
-            res.status(500).send("Error finding game by ID");
-            return next();
+            return res.status(500).send("Error finding game by ID");
         });
 
 };
@@ -231,3 +223,44 @@ exports.deleteAll = function(req, res, next) {
             }
         });
 };
+
+// Invites
+exports.listInvites = function(req, res, next){
+    var user = req.user;
+    if (!user)
+        return res.status(500).send("Unable to read user.");
+
+    user.deepPopulate('invitations.rounds.themes', 'invitations.players', function (err, _user) {
+        if (err) {
+            console.log("Error populating populated Game objects.", err);
+            return res.status(500).send("Unable to read game list.", err);
+        }
+
+        var invitations = _user.invitations;
+        return res.json(invitations);
+    });
+
+};
+
+exports.deleteInvites = function(req, res, next) {
+    var user = req.user;
+    if (!user)
+        return res.status(500).send("Unable to read user.");
+
+    user.invitations = [];
+
+    user.saveAsync()
+        .then(function(user) {
+            //TODO: need to handle how game is affected with a user deleting invitation
+            //return Game.removeAsync({})
+            return;
+        }).then(function (games, err) {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.status(200).send("Deleted invitations for user: " + user.username);
+            }
+        });
+};
+
+// Non-exported functions

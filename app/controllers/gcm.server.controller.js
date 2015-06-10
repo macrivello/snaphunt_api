@@ -62,7 +62,7 @@ exports.sendGcmMessageToUsers = function (req, res, next, users) {
 
     User.findAsync({'_id': { $in: users}}).then(function(users) {
         var ids = [];
-        for (user in users){
+        for (var i = 0; i < users.length; i++) {
             ids.push(user.gcmRegId);
         }
         _this.sendGcmMessageToGcmId(req, res, next, ids);

@@ -12,27 +12,49 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     eventEmitter = new event.EventEmitter();
 
 process.on(Events.gameCreated, onNewGameCreated);
+process.on(Events.themeSelected, onThemeSelected);
 
 function onNewGameCreated (data) {
-    console.log("Adding new game to players invitations. \n" + JSON.stringify(data));
+    console.log("Adding new game to players invitations.");
     var game = data.game;
+    var gameId = data.game._id;
     var userDigestIdOfCreator = data.userDigestIdOfCreator;
-    //
-    //var userIds = [];
-    //for (var userId in game.players) {
-    //}
-    //User.findAsync({'_id': { $in: }}).then(function(users) {
-    //    var ids = [];
-    //    for (user in users){
-    //
-    //    }
-    //    _this.sendGcmMessageToGcmId(req, res, next, ids);
-    //}).catch(function(e) {
-    //    console.log("Error looking up users");
-    //    next(e);
-    //});
+    console.log("game: " + JSON.stringify(game));
+    console.log("gameId: " + JSON.stringify(gameId));
+    console.log("userDigestIdOfCreator: " + JSON.stringify(userDigestIdOfCreator));
+
+    var userDigestIds = [];
+    for (var i = 0; i < game.players.length; i++) {
+        var userId = game.players[i];
+        if (userId != userDigestIdOfCreator) {
+            userDigestIds.push(userId);
+        }
+    }
+
+    console.log("Searching for usersDigests: " + JSON.stringify(userDigestIds));
+    UserDigest.findAsync({'_id': { $in: userDigestIds}})
+        .then(function(userDigests) {
+            console.log("need to send invitations to these userdigest ids: " + userDigests);
+
+            var userIds = [];
+            for (var i = 0; i < userDigests.length; i++) {
+                userIds.push(userDigests[i].userId);
+            }
+
+            return User.update({_id: { $in: userIds}}, {$push: {'invitations': gameId}});
+        }).then(function (users){
+            // add game to invite for all users.
+            console.log("Added game to players invites");
+            //_this.sendGcmMessageToGcmId(req, res, next, userIds);
+
+    }).catch(function(e) {
+        console.log("Error looking up users. " + e);
+    });
 }
 
+function onThemeSelected (data) {
+
+}
 
 var SALT_WORK_FACTOR = 10; // This was completely arbitrary
 

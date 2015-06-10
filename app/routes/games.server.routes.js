@@ -12,6 +12,14 @@ module.exports = function(router) {
         .put(games.update)
         .delete(games.delete);
 
+    router.route('/invites')
+        .get(games.listInvites)
+        .delete(games.deleteInvites);
+
+    //router.route('/invites/{gameId}')
+    //    .get(games.readInvite)
+    //    .put(games.updateInvite);
+
     // Updates request object with req.game
     router.param('gameId', games.getGame);
 

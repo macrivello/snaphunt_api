@@ -7,11 +7,12 @@ module.exports = {
     // Photo
     photoSubmitted : "photoSubmitted",
     photoSelected : "photoSelected",
-    allPhotosSubmitted : "allPhotosSubmitted"
+    allPhotosSubmitted : "allPhotosSubmitted",
 
     // Round
 
     // User
 
     // Theme
+    themeSelected : "themeSelected"
 };
