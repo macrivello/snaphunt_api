@@ -192,7 +192,6 @@ exports.list = function(req, res, next){
             console.log("Error populating populated Game objects.", err);
             return res.status(500).send("Unable to read game list.", err);
         }
-
         var games = _user.games;
         return res.json(games);
     });
