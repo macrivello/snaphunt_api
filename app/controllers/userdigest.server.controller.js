@@ -16,3 +16,32 @@ exports.list = function (req, res, next) {
         }
     });
 };
+
+exports.getUserDigest = function(req, res, next, id) {
+    console.log("get userDigest");
+    if (!id) {
+        var message = "Unable to find UserDigest. Invalid id.";
+        console.log(message);
+        res.status(401).send(message);
+        return;
+    }
+
+    // TODO: make sure gameId is in user.games
+    // req.user should be valid since its an auth route.
+    UserDigest.findByIdAsync(id)
+        .then(function(userDigest){
+            req.userdigest = userDigest;
+            next();
+        }).catch(function(err){
+            return res.status(500).send("Error finding game by ID");
+        });
+};
+
+exports.read = function(req, res, next) {
+    var userdigest = req.userdigest;    // This should be populated by getGame()
+
+    if (!userdigest)
+        return res.status(500).send("Unable to read userdigest.");
+
+    return res.json(userdigest);
+}

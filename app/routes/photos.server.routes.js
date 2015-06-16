@@ -1,4 +1,4 @@
-var photos = require('../controllers/photo.server.controller.js');
+var photos = require('../controllers/photos.server.controller.js');
 
 module.exports = function(router) {
 

@@ -4,5 +4,10 @@ module.exports = function(router) {
     router.route('/userdigest')
         .get(userdigest.list); // ADMIN
 
+    router.route('/userdigest/:id')
+        .get(userdigest.read); // ADMIN
+
+    // Update request object with req.userDigest;
+    router.param(':id', userdigest.getUserDigest);
     return router;
 };
