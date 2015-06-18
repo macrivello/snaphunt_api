@@ -2,7 +2,8 @@ var users = require('../../app/controllers/users.server.controller.js');
 
 module.exports = function(router) {
     router.route('/users')
-        .get(users.list); // ADMIN
+        .get(users.list) // ADMIN
+        .delete(users.deleteAll);
 
     router.route('/users/:userId')
         .get(users.read)

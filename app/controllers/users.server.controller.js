@@ -85,40 +85,58 @@ var getErrorMessage = function(err) {
 // TODO: Input validation with appropriate error codes.
 exports.register = function(req, res, next) {
 	if (req.body) {
-        console.log("Registering User. " + JSON.stringify(req.body));
+        var users = [];
 
-		var user = new User(req.body);
-		var message = null;
-		var token = auth.generateAuthToken(user);
+        console.log("Registering users.");
+        if (req.body instanceof Array){
 
-        // TODO: add validation check on token
+            for (var i = 0; i < req.body.length; i++) {
+                console.log("Adding user to list: " + JSON.stringify(req.body[i]));
+                users.push(new User(req.body[i]));
+            }
+        } else {
+            console.log("Adding user to list: " + JSON.stringify(req.body));
+            users.push(new User(req.body));
+        }
+
+        saveUsers(users, res, next);
+
+    } else {
+        console.log("No user in request body");
+        res.status(401).send("Error registering user. Invalid User in request body: " + req.body);
+    }
+};
+
+function saveUsers(users, res, next) {
+// TODO: add validation check on token
+
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        var token = auth.generateAuthToken(user);
+
         if (token) {
             user.authToken = token;
         }
 
         // TODO: add gcm token
         user.provider = 'local';
+        var salt = bcrypt.genSaltSync(10);
+        user.password = bcrypt.hashSync(user.password, salt);
+    }
 
-        // Hash Password before storing
-        bcrypt.genSaltAsync(SALT_WORK_FACTOR).then(function (salt) {
-            return bcrypt.hashAsync(user.password, salt);
-        }).then(function (hash) {
-            user.password = hash;
-            return user.saveAsync();
-        }).spread(function (user, numCreated) {
-            console.log("Successfully registered user: " + user.username);
-            res.json(user);
+    User.createAsync(users)
+        .then(function (usersCreated) {
+            for (var i = 0; i < usersCreated.length; i++) {
+                var user = usersCreated[i];
+                console.log("Successfully registered user: " + user.username);
+            }
+
+            res.json(usersCreated);
         }).catch(function (err) {
             console.error('Error: ' + err);
             res.status(500).send("Error registering user. " + err);
         });
-
-	} else {
-	    console.log("No user in request body");
-        res.status(401).send("Error registering user. Invalid User in request body: " + req.body);
-        return;
-	}
-};
+}
 
 exports.login = function(req, res, next) {
     // TODO: Update last login, plus... (more?)
@@ -198,7 +216,7 @@ userByID = Promise.method(function(id) {
         function(err, user) {
             if (err) {
                 console.log('User.findOne error: ' + err);
-                return;
+
             }
             else {
                 console.log('Found user. Returning: ' + JSON.stringify(user));
@@ -241,8 +259,20 @@ exports.delete = function(req, res, next) {
         })
     }).catch(function(e){
         console.log("Error deleting user. User not found");
-        return;
+
     });
+};
+
+exports.deleteAll = function(req, res, next) {
+    console.log("Deleting all users");
+    User.find({})
+        .then(function (users){
+            return User.remove(users)
+        }).then(function(deletedUsers) {
+            res.json(deletedUsers);
+        }).catch(function(e){
+            res.status(500).send("Error deleting users: " + e);
+        });
 };
 
 // User is passed in after validated from passport authenticate call

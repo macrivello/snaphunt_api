@@ -46,43 +46,29 @@ UserSchema.plugin(deepPopulate, null);
 // TODO: There are paralell implementations available too. http://mongoosejs.com/docs/middleware.html
 UserSchema.pre('save',
 	function(next) {
-        console.log("USER pre-save DB hook");
-
-        var user = this; // 'this' refers to the document that is being saved
-        user.lastModifed = Date.now();
-
-        if (user.isModified('_id') || user.isModified('username') || user.isModified('profilePhoto')) {
-            console.log("creating userdigest for: " + user.username);
-
-            // Update userDigest
-            var userDigest = new UserDigest({
-                userId: user._id,
-                username: user.username,
-                profilePhoto: user.profilePhoto
-            });
-
-            userDigest.saveAsync()
-                .then(function (savedUserDigest) {
-                    console.log("Setting user's userDigest: " + savedUserDigest[0]._id);
-                    user.userDigest = savedUserDigest[0]._id;
-                    user.lastModifed = Date.now();
-                    next();
-                }).catch(function (err) {
-                    console.log("Error: " + err);
-                    return next(err);
-                });
-        } else {
-            return next();
-        }
+        console.log("User presave");
+        next();
 	}
 );
+
+
+
+UserSchema.post('save', function(doc){
+    console.log('User post-save');
+});
+
+UserSchema.post('validate', function(doc){
+    console.log('User post-validate');
+
+
+});
 
 UserSchema.post =('remove', function(doc) {
     console.log('In User remove post hook');
     var userId = doc._id;
     var userDigestId = doc.userDigest;
     if (userDigestId) {
-        User.findByIdAndRemove(userDigestId, function (err, userDigest) {
+        UserDigest.findByIdAndRemove(userDigestId, function (err, userDigest) {
             if (err) {
                 console.log("Error deleting UserDigest '%s' for user '%s'.", userDigestId, userId);
                 return next(err);
@@ -121,9 +107,5 @@ UserSchema.statics.findUniqueUsername = function(username, suffix, callback) {
 		}
 	);
 };
-
-UserSchema.post('remove', function (doc) {
-    // Remove references
-});
 
 mongoose.model('User', UserSchema);

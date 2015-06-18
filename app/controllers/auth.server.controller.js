@@ -9,6 +9,7 @@ var mongoose = Promise.promisifyAll(require('mongoose'),
 
 
 exports.generateAuthToken = function (user) {
+    console.log(JSON.stringify(user));
     if (!user || !user._id) {
         console.log("ERROR GENERATING AUTH TOKEN, INVALID USER OBJECT");
         return;
