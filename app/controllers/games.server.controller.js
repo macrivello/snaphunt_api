@@ -187,24 +187,24 @@ exports.list = function(req, res, next){
     if (!user)
         return res.status(500).send("Unable to read user.");
 
-    user.deepPopulate('games.rounds.themes', 'games.players', function (err, _user) {
-        if (err) {
-            console.log("Error populating populated Game objects.", err);
-            return res.status(500).send("Unable to read game list.", err);
-        }
-        var games = _user.games;
-        return res.json(games);
-    });
-
-    //Game.populateAsync(user, { path: 'games'})
-    //    .then(function(userWithGamesPopulated){
-    //        var games = userWithGamesPopulated.games;
-    //        console.log("Found games \n '%s' \n for user: '%s'", JSON.stringify(games), user.username);
-    //        return res.json(games)
-    //    }).catch(function(err){
-    //        console.log("Error populating games");
-    //        return res.status(500).send("Unable populating games for %s.", user.username);
-    //    });
+    if (user.admin) {
+        Game.find().then(function(games) {
+            console.log("Returning all games in DB");
+            return res.json(games);
+        }).catch(function(err) {
+            console.log(err, "Error returing games");
+            return;
+        })
+    } else {
+        user.deepPopulate('games.rounds.themes', 'games.players', function (err, _user) {
+            if (err) {
+                console.log("Error populating populated Game objects.", err);
+                return res.status(500).send("Unable to read game list.", err);
+            }
+            var games = _user.games;
+            return res.json(games);
+        });
+    }
 };
 
 exports.deleteAll = function(req, res, next) {

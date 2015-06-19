@@ -46,8 +46,10 @@ module.exports = function() {
     var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
     var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
 
+
     // Register routes on base url
     app.use('/api/v1', auth.checkAuthToken, router);
+    app.use(gameRoutes, roundRoutes);
 
     app.use(express.static('./public'));
 

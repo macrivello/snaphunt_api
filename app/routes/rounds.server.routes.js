@@ -1,25 +1,12 @@
 var rounds = require('../controllers/rounds.server.controller.js');
-var games = require('../controllers/games.server.controller.js');
+var photos = require('../controllers/photos.server.controller.js');
 
 module.exports = function(router) {
 
-    //router.use('/games/:gameId', )
+    //var router = app.Router();
 
-
-    //router.route('/games/:gameId/rounds')
-    //    .get(rounds.list);
-
-    //router.route('/games/:gameId/rounds/:roundId')
-    //    .get(rounds.read);
-
-    //router.route('/rounds/:roundId')
-    //    .get(rounds.readRound);
-
-    router.get('/games/:gameId/rounds/:roundId',
-        rounds.readRound);
-        //function(res, req, next) {
-        //console.log("fufano");
-    //});
+    router.route('/rounds/:roundId')
+        .get(rounds.readRound);
 
     router.route('/rounds')
         .get(rounds.listRounds);
@@ -27,6 +14,9 @@ module.exports = function(router) {
     // Theme selection
     //router.route('/games/:gameId/rounds/:roundId/:themeId')
     //    .get(rounds.selectTheme);
+
+    router.route('/rounds/:roundId/photo')
+        .post(photos.submitPhoto);
 
     // updates req object with req.round
     router.param('roundId', rounds.getRound);

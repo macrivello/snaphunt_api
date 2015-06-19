@@ -33,10 +33,16 @@ exports.checkAuthToken = function (req, res, next) {
     }
 
     var token = req.headers[config.authHeader];
+
+    // TODO: Actually update with admin Users. Add Admin field to user object.
     if (token == 'dev'){
         console.log("Dev accessing resource, bypassing token");
+        var adminUser = {};
+        adminUser.admin = true;
+        req.user = adminUser;
         return next();
     }
+
     if (token) {
         try {
             var decoded = jwt.decode(token, config.jwtTokenSecret);

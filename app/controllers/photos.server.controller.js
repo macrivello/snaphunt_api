@@ -11,7 +11,7 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     gcm = require('./gcm.server.controller.js');
 
 
-exports.submit = function (req, res, next) {
+exports.submitPhoto = function (req, res, next) {
     var user = req.user;
     var game = req.game;
     var round = req.round;
@@ -48,4 +48,30 @@ exports.submit = function (req, res, next) {
         }).catch(function(err){
             return res.status(500).send("Error saving photo. " + err);
         });
+};
+
+exports.getPhoto = function (req, res, next, photoId) {
+    console.log("get photo");
+    if (!photoId) {
+        console.log("Unable to find photo. Invalid id.");
+        res.status(401).send("Unable to find photo. Invalid id.");
+    }
+
+    Photo.findById(photoId)
+        .then(function(photo) {
+            req.photo = photo;
+            next();
+        }).catch(function(err){
+            return res.status(500).send("Error finding photo with ID: " + photoId);
+        })
+};
+
+exports.readPhoto = function (req, res, next) {
+
+    var photo = req.photo;    // This should be populated by getPhoto()
+
+    if (!photo)
+        return res.status(500).send("Unable to read photo.");
+
+    res.json(photo);
 };
