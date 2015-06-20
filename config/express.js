@@ -42,14 +42,18 @@ module.exports = function() {
     var userRoutes = require('../app/routes/users.server.routes.js')(router);
     var userDigestRoutes = require('../app/routes/userdigest.server.routes.js')(router);
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
+
+    // Child Routers, pass mergeParams: true in Router constructor.
     //var photoRoutes = require('../app/routes/photos.server.routes.js')(router);
-    var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
-    var roundRoutes = require('../app/routes/rounds.server.routes.js')(router);
+    //var themeRoutes = require('../app/routes/themes.server.routes.js')(router);
+    var roundRoutes = require('../app/routes/rounds.server.routes.js')(express);
 
 
     // Register routes on base url
+    gameRoutes.use('/games/:gameId/', roundRoutes);
+
     app.use('/api/v1', auth.checkAuthToken, router);
-    app.use(gameRoutes, roundRoutes);
+    //router.use('/rounds/:roundId/', photoRoutes);
 
     app.use(express.static('./public'));
 

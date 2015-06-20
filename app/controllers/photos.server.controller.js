@@ -8,10 +8,12 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     User = require('mongoose').model('User'),
     Game = require('mongoose').model('Game'),
     Round = require('mongoose').model('Round'),
+    Photo = require('mongoose').model('Photo'),
     gcm = require('./gcm.server.controller.js');
 
 
 exports.submitPhoto = function (req, res, next) {
+    console.log("submit photo");
     var user = req.user;
     var game = req.game;
     var round = req.round;
@@ -39,12 +41,13 @@ exports.submitPhoto = function (req, res, next) {
 
             return round.saveAsync();
         }).then(function(round) {
-            if (round.allPhotosSubmitted)
+            if (round.allPhotosSubmitted) {
                 eventEmitter.emit(Events.allPhotosSubmitted, photo, round);
-            elses
+            } else {
                 eventEmitter.emit(Events.photoSubmitted, photo, round);
+            }
 
-            return next();
+            next();
         }).catch(function(err){
             return res.status(500).send("Error saving photo. " + err);
         });

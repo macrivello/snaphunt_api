@@ -25,6 +25,7 @@ exports.getRound = function (req, res, next, roundId){
         .then(function(round){
             console.log("adding round to request object");
             req.round = round;
+            console.log("calling next(). req.path " + req.path);
             next();
         }).catch(function(err){
             return res.status(500).send("Error finding round by ID");
@@ -49,7 +50,7 @@ exports.listRounds = function(req, res, next){
         });
 };
 
-exports.readRound = function(req, res, next, roundId){
+exports.readRound = function(req, res, next){
     //req.user, req.game, req.round
     console.log("round read");
     var round = req.round;
