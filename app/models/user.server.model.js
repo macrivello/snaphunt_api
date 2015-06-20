@@ -44,24 +44,25 @@ UserSchema.plugin(deepPopulate, null);
 
 // TODO: Send Push notifications on Invitation updates
 // TODO: There are paralell implementations available too. http://mongoosejs.com/docs/middleware.html
-UserSchema.pre('save',
-	function(next) {
-        console.log("User presave");
-        next();
-	}
-);
-
-
-
-UserSchema.post('save', function(doc){
-    console.log('User post-save');
-});
-
-UserSchema.post('validate', function(doc){
-    console.log('User post-validate');
-
-
-});
+//UserSchema.pre('save',
+//	function(next) {
+//        console.log("User pre-save");
+//        next();
+//	}
+//);
+//
+//
+//
+//UserSchema.post('save', function(doc){
+//    console.log('User post-save');
+//});
+//
+//// TODO: Currently UserDigests are created even when the User object
+//// does not get created successfully. This will result in zombie userdigests.
+//UserSchema.post('validate', function(doc){
+//    console.log('User post-validate. Create UserDigest');
+//    //Add User.userdigest.
+//});
 
 UserSchema.post =('remove', function(doc) {
     console.log('In User remove post hook');

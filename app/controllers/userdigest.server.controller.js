@@ -19,6 +19,7 @@ exports.list = function (req, res, next) {
     console.log("listing userdigests");
     var ids = [];
     var idArr = req.query.id;
+
     if (idArr){
         for(var i = 0; i < idArr.length; i++) {
             ids.push(idArr[i]);
@@ -30,7 +31,9 @@ exports.list = function (req, res, next) {
             return next(err);
         }
         else {
-            res.json(userdigests);
+            UserDigest.deepPopulate(userdigests, 'profilePhoto', function (err, _userdigests) {
+                res.json(_userdigests);
+            });
         }
     });
 };
@@ -48,10 +51,15 @@ exports.getUserDigest = function(req, res, next, id) {
     // req.user should be valid since its an auth route.
     UserDigest.findByIdAsync(id)
         .then(function(userDigest){
-            req.userdigest = userDigest;
-            next();
+            userDigest.deepPopulate('profilePhoto', function(err, _userdigest){
+                if (err) {
+                    next(err);
+                }
+                req.userdigest = _userdigest;
+                next();
+            });
         }).catch(function(err){
-            return res.status(500).send("Error finding game by ID");
+            return res.status(500).send("Error finding userdigest by ID");
         });
 };
 
@@ -61,8 +69,8 @@ exports.read = function(req, res, next) {
     if (!userdigest)
         return res.status(500).send("Unable to read userdigest.");
 
-    return res.json(userdigest);
-}
+    res.json(userdigest);
+};
 
 //TODO: incorporate DB validation somewhere else. Improve performance
 exports.delete = function(req, res, next) {

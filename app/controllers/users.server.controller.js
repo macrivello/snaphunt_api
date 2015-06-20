@@ -3,6 +3,7 @@ var Promise = require('bluebird');
 var mongoose = Promise.promisifyAll(require('mongoose')),
     User = require('mongoose').model('User'),
     UserDigest = require('mongoose').model('UserDigest'),
+    Photo = require('mongoose').model('Photo'),
     passport = require('passport'),
     auth = require('./auth.server.controller.js'),
     gcm = require('./gcm.server.controller.js'),
@@ -19,9 +20,9 @@ function onNewGameCreated (data) {
     var game = data.game;
     var gameId = data.game._id;
     var userDigestIdOfCreator = data.userDigestIdOfCreator;
-    console.log("game: " + JSON.stringify(game));
-    console.log("gameId: " + JSON.stringify(gameId));
-    console.log("userDigestIdOfCreator: " + JSON.stringify(userDigestIdOfCreator));
+    //console.log("game: " + JSON.stringify(game));
+    console.log("gameId: " + gameId);
+    console.log("userDigestIdOfCreator: " + userDigestIdOfCreator);
 
     var userDigestIds = [];
     for (var i = 0; i < game.players.length; i++) {
@@ -82,6 +83,26 @@ var getErrorMessage = function(err) {
 	return message;
 };
 
+exports.getUser = function(req, res, next, id) {
+    console.log("getUser");
+    if (!id) {
+        var message = "Unable to find user. Invalid id.";
+        console.log(message);
+        res.status(401).send(message);
+        return;
+    }
+
+    // TODO: make sure gameId is in user.games
+    // req.user should be valid since its an auth route.
+    User.findByIdAsync(id)
+        .then(function(user){
+            req.user = user;
+            next();
+        }).catch(function(err){
+            return res.status(500).send(err, "Error finding user by ID");
+        });
+};
+
 // TODO: Input validation with appropriate error codes.
 exports.register = function(req, res, next) {
 	if (req.body) {
@@ -109,6 +130,8 @@ exports.register = function(req, res, next) {
 
 function saveUsers(users, res, next) {
 // TODO: add validation check on token
+    var updatedUsers = [];
+    var userDigests = [];
 
     for (var i = 0; i < users.length; i++) {
         var user = users[i];
@@ -122,12 +145,27 @@ function saveUsers(users, res, next) {
         user.provider = 'local';
         var salt = bcrypt.genSaltSync(10);
         user.password = bcrypt.hashSync(user.password, salt);
+
+        // Create UserDigest
+        var ud = new UserDigest();
+        ud.username = user.username;
+        ud.profilePhoto = user.profilePhoto;
+        ud.userId = user._id;
+
+        console.log("Setting userdigest: '%s' to user: '%s'", ud._id,  user._id);
+        user.userDigest = ud._id;
+
+        userDigests.push(ud);
+        updatedUsers.push(user);
     }
 
-    User.createAsync(users)
-        .then(function (usersCreated) {
+    UserDigest.createAsync(userDigests)
+        .then(function(userDigestsCreated) {
+            return User.createAsync(updatedUsers)
+        }).then(function (usersCreated) {
             for (var i = 0; i < usersCreated.length; i++) {
                 var user = usersCreated[i];
+
                 console.log("Successfully registered user: " + user.username);
             }
 
@@ -219,7 +257,7 @@ userByID = Promise.method(function(id) {
 
             }
             else {
-                console.log('Found user. Returning: ' + JSON.stringify(user));
+                console.log('Found user. Returning user');
                 return user;
             }
         }
@@ -263,6 +301,8 @@ exports.delete = function(req, res, next) {
     });
 };
 
+// TODO: currently remove hook middleware is not called
+// which would delete the userdigest doc
 exports.deleteAll = function(req, res, next) {
     console.log("Deleting all users");
     User.find({})
@@ -304,7 +344,6 @@ function updateAuthToken(req, res, next, user) {
     }
 }
 
-
 exports.sendGcmMessage = function (req, res, next) {
             gcm.sendGcmMessageToUserId(req, res, next, req.params.userId);
         };
@@ -343,3 +382,51 @@ exports.saveOAuthUserProfile = function(req, profile, done) {
                 }
             );
         };
+
+// TODO: Refactor. Verify photo?
+exports.updateProfilePhoto = function (req, res, next) {
+    console.log("update User ProfilePhoto");
+    var user = req.user;
+    var userPhoto = new Photo(req.body);
+
+    console.log(JSON.stringify(userPhoto));
+    console.log(JSON.stringify(user));
+
+    if(!user){
+        console.log("Invalid user");
+        return res.status(400).send("Unable to update photo for user. Invalid user in request");
+    }
+
+    // TODO: Delete off of S3
+    var existingProfilePhoto = user.profilePhoto;
+    if (existingProfilePhoto) {
+        console.log("removing old profile photo");
+        existingProfilePhoto.remove();
+    }
+
+    var photoId;
+    userPhoto.saveAsync()
+        .then(function(_photo) {
+            var photo = _photo[0];
+            photoId = photo._id;
+            user.profilePhoto = photoId;
+
+            return user.saveAsync();
+        }).then(function(savedUser){
+            var u = savedUser[0];
+            return UserDigest.findAsync(u.userDigest);
+        }).then(function(userDigest) {
+            var ud = userDigest[0];
+            ud.profilePhoto = photoId;
+            return ud.saveAsync();
+        }).then(function(savedUserDigest){
+            console.log("Successfully updated profile photo for user: '%s' ", user._id);
+            return res.json(savedUserDigest[0]);
+        }).catch(function(err){
+            var msg = "Error updating profile photo for user: " + user._id;
+            console.log(err, msg);
+            return res.status(500).send(err, msg);
+        });
+
+
+};

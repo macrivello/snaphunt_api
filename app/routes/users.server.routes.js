@@ -10,11 +10,17 @@ module.exports = function(router) {
         .put(users.update)
         .delete(users.delete);
 
+    router.route('/users/:userId/profilephoto')
+        .put(users.updateProfilePhoto);
+
     router.route('/register')
 		.post(users.register);
 
     router.route('/login')
         .post(users.login);
+
+    router.param('userId', users.getUser);
+
 
     // TESTING PUSHING TO USERID
     router.route('/push/:userId').get(users.sendGcmMessage);
