@@ -9,16 +9,17 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Game = require('mongoose').model('Game'),
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
+    util = require('../util/util.js'),
     gcm = require('./gcm.server.controller.js');
 
 
 exports.submitPhoto = function (req, res, next) {
-    console.log("submit photo");
+    console.log("submit photo. body: " + JSON.stringify(req.body));
     var user = req.user;
     var game = req.game;
     var round = req.round;
 
-    if (!req.body)
+    if (!req.body || util.isEmpty(req.body))
         return res.status(500).send("Invalid request body.");
 
     // TODO: more informative error?
@@ -47,7 +48,7 @@ exports.submitPhoto = function (req, res, next) {
                 eventEmitter.emit(Events.photoSubmitted, photo, round);
             }
 
-            next();
+            res.json(photo);
         }).catch(function(err){
             return res.status(500).send("Error saving photo. " + err);
         });

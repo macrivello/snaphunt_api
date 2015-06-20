@@ -1,7 +1,10 @@
 var photos = require('../controllers/photos.server.controller.js');
 
-module.exports = function(router) {
+module.exports = function(app) {
 
+    var router = app.Router({mergeParams: true});
+
+    // game/{id}/round/{id}/photo...
     router.route('/photo')
         .post(photos.submitPhoto);
 
