@@ -5,6 +5,7 @@
 
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
+    User = require('mongoose').model('User'),
     Schema = mongoose.Schema;
 
 var GameSchema = new Schema({
@@ -34,6 +35,28 @@ GameSchema.pre('save',
 
 GameSchema.post('remove', function (doc) {
     // Remove references
+    var game = doc;
+    console.log("Game post remove. Removed game: " + game._id);
+    for (var i = 0; i < game.players.length; i++){
+        var user = game.players[i];
+        var userGames = user.games;
+        var userInvites = user.invitations;
+
+        var gameIndex = userGames.indexOf(game._id);
+        var inviteIndex = userInvites.indexOf(game._id);
+        if (gameIndex > -1) {
+            console.log("Removing game from user");
+            userGames = userGames.splice(gameIndex, 1);
+        }
+        if (inviteIndex > -1) {
+            console.log("Removing invite from user");
+            userInvites = userInvites.splice(inviteIndex, 1);
+        }
+
+        user.save();
+    }
+
+    //TODO: Remove Rounds
 });
 
 mongoose.model('Game', GameSchema);

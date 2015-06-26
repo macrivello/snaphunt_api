@@ -20,13 +20,18 @@ exports.list = function (req, res, next) {
     var ids = [];
     var idArr = req.query.id;
 
+    var lookup;
     if (idArr){
         for(var i = 0; i < idArr.length; i++) {
             ids.push(idArr[i]);
         }
+        lookup = { '_id': { $in: ids}};
+    } else {
+        // Find all userDigests
+        lookup = {};
     }
 
-    UserDigest.find(ids, function(err, userdigests) {
+    UserDigest.find(lookup, function(err, userdigests) {
         if (err) {
             return next(err);
         }

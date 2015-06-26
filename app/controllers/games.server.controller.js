@@ -1,13 +1,14 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    Game = Promise.promisifyAll(require('mongoose').model('Game')),
-    Round = Promise.promisifyAll(require('mongoose').model('Round')),
-    Photo = Promise.promisifyAll(require('mongoose').model('Photo')),
-    User = Promise.promisifyAll(require('mongoose').model('User')),
-    UserDigest = Promise.promisifyAll(require('mongoose').model('UserDigest')),
-    Theme = Promise.promisifyAll(require('mongoose').model('Theme')),
+    Game = require('mongoose').model('Game'),
+    Round = require('mongoose').model('Round'),
+    Photo = require('mongoose').model('Photo'),
+    User = require('mongoose').model('User'),
+    UserDigest = require('mongoose').model('UserDigest'),
+    Theme = require('mongoose').model('Theme'),
     event = require('events'),
+    ObjectId = require('mongoose').Types.ObjectId,
     Events = require('../events/events.server'),
     eventEmitter = new event.EventEmitter();
 
@@ -22,61 +23,41 @@ exports.create = function(req, res, next) {
 
     var user = req.user; // this should be valid since its an authenticated route
     var game = new Game(req.body);
-    var rounds;
 
-    var i;
-    // TODO: add a GameOptions model for Users that would include number of themes to choose from
-    // TODO: currently just using same three themes for each round
-    Theme.findRandom({}, {}, { limit: 3  }).execAsync()
-        .then(function(themes) {
-            if (themes && themes.length < 3) {
-                console.log('Creating new themes');
-                // Create 3 dummy themes
-                var newThemes = [{phrase: 'test'}, {phrase: 'test2'}, {phrase: 'test3'}];
-
-                return Theme.createAsync(newThemes);
+    var ids = req.query.id;
+    if (ids){
+        if (ids instanceof Array){
+            for (var i = 0; i < ids.length; i++) {
+                console.log("Adding player to game: " + ids[i]);
+                game.players.push(new ObjectId(ids[i]));
             }
+        } else {
+            console.log("Adding player to game: " + ids);
+            game.players.push(new ObjectId(ids));
+        }
+    } else {
+        console.log("Invalid player IDs in query parameters.");
+        res.status(401).send("Invalid player IDs in query parameters");
+    }
 
-            return themes;
-        }).then(function (themes) {
-            // create Theme array to add to Rounds
-            //console.log("Themes.findRandom returned: " + JSON.stringify(themes));
-            var themeIds = [];
-            for (i = 0; i < themes.length; i++){
-                themeIds.push(themes[i]._id);
-            }
+    var i, r = [];
 
-            // Create rounds for game.
-            // TODO : a cleaner solution please...
-            var r = [];
-            console.log("number of rounds: " + game.numberOfRounds);
-            for (i = 0; i < game.numberOfRounds; i++) {
-                r.push({roundNumber: i+1,
-                        themes: themeIds});
-            }
+    for (i = 0; i < game.numberOfRounds; i++) {
+        r.push({roundNumber: i+1});
+    }
 
-            return Round.createAsync(r);
-        }).then(function(roundsReturned) {
-            console.log("Created Rounds for new Game");
-
-            var numRounds = roundsReturned.length;
-            if (numRounds != game.numberOfRounds) {
-                console.log("Error creating %d rounds. Only created %d ", game.numberOfRounds, numRounds);
-                return res.status(500).send("Error creating new game. ");
-            }
-
-            var rounds = roundsReturned;
+    Round.createAsync(r)
+        .then(function(roundsCreated) {
+            var roundIds = [];
+            var numRounds = roundsCreated.length;
+            console.log("%d rounds created.", numRounds);
             for (i = 0; i < numRounds; i++) {
-                var round = rounds[i];
-                if (i == 0) {
-                    round.judge = user.userDigest;
-                }
-                game.rounds[i] = round._id;
+                roundIds.push(roundsCreated[i]._id);
             }
-
+            game.rounds = roundIds;
             return game.saveAsync();
         }).then(function(gameSaved){
-            var game = gameSaved[0];
+            game = gameSaved[0];
             console.log("User: " + user.username);
             console.log("New Game created. Game: " + game._id);
 
@@ -85,18 +66,87 @@ exports.create = function(req, res, next) {
             user.games.push(game._id);
 
             return user.saveAsync();
-        }).then(function(_user){
-            var user = _user[0];
-            console.log("Updated %s with new game.", user.username);
-
-            // TODO: Set as invitation to players. Send out push notifications.
-
-            return res.json(game);
-        }).catch(function(err){
-            console.log("Error creating new game. " + err);
-
-            return res.status(500).send("Error creating new game. " + err);
+        }).then(function(_user) {
+            console.log("Saved new game.");
+            res.json(game);
+        }).catch(function(err) {
+            console.log(err, "Error creating new game");
+            res.status(500).send(err);
         });
+
+
+    // TODO: add a GameOptions model for Users that would include number of themes to choose from
+    // TODO: currently just using same three themes for each round
+    //Theme.findRandom({}, {}, { limit: 3  }).execAsync()
+    //    .then(function(themes) {
+    //        if (themes && themes.length < 3) {
+    //            console.log('Creating new themes');
+    //            // Create 3 dummy themes
+    //            var newThemes = [{phrase: 'test'}, {phrase: 'test2'}, {phrase: 'test3'}];
+    //
+    //            return Theme.createAsync(newThemes);
+    //        }
+    //
+    //        return themes;
+    //    }).then(function (themes) {
+    //        // create Theme array to add to Rounds
+    //        //console.log("Themes.findRandom returned: " + JSON.stringify(themes));
+    //        var themeIds = [];
+    //        for (i = 0; i < themes.length; i++){
+    //            themeIds.push(themes[i]._id);
+    //        }
+    //
+    //        // Create rounds for game.
+    //        // TODO : a cleaner solution please...
+    //        var r = [];
+    //        console.log("number of rounds: " + game.numberOfRounds);
+    //        for (i = 0; i < game.numberOfRounds; i++) {
+    //            r.push({roundNumber: i+1,
+    //                    themes: themeIds});
+    //        }
+    //
+    //        return Round.createAsync(r);
+    //    }).then(function(roundsReturned) {
+    //        console.log("Created Rounds for new Game");
+    //
+    //        var numRounds = roundsReturned.length;
+    //        if (numRounds != game.numberOfRounds) {
+    //            console.log("Error creating %d rounds. Only created %d ", game.numberOfRounds, numRounds);
+    //            return res.status(500).send("Error creating new game. ");
+    //        }
+    //
+    //        var rounds = roundsReturned;
+    //        for (i = 0; i < numRounds; i++) {
+    //            var round = rounds[i];
+    //            if (i == 0) {
+    //                round.judge = user.userDigest;
+    //            }
+    //            game.rounds[i] = round._id;
+    //        }
+    //
+    //        return game.saveAsync();
+    //    }).then(function(gameSaved){
+    //        var game = gameSaved[0];
+    //        console.log("User: " + user.username);
+    //        console.log("New Game created. Game: " + game._id);
+    //
+    //        process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
+    //
+    //        user.games.push(game._id);
+    //
+    //        return user.saveAsync();
+    //    }).then(function(_user){
+    //        var user = _user[0];
+    //        console.log("Updated %s with new game.", user.username);
+    //
+    //        // TODO: Set as invitation to players. Send out push notifications.
+    //
+    //        return res.json(game);
+    //    }).catch(function(err){
+    //        console.log("Error creating new game. " + err);
+    //
+    //        return res.status(500).send("Error creating new game. " + err);
+    //    });
 };
 
 // Add Game object with id 'gameId' to request object field, req.game
@@ -127,24 +177,7 @@ exports.read = function(req, res, next){
     if (!game)
         return res.status(500).send("Unable to read game.");
 
-    // Return game object with rounds and players field populated
-    game.deepPopulate('rounds.themes', 'players', function (err, _game) {
-        if (err) {
-            console.log("Error populating rounds in Game object.", err);
-            return res.status(500).send("Unable to read game.", err);
-        }
-
-        return res.json(_game);
-    });
-
-    //Round.populateAsync(req.game, { path: 'rounds'})
-    //    .then(function(gameWithRounds) {
-    //        console.log("populated round in Game: " + gameWithRounds._id);
-    //        return UserDigest.populateAsync(gameWithRounds, {path: 'players'});
-    //    }).then(function(gameWithRoundsAndPlayers) {
-    //        console.log("populated players in Game: " + gameWithRoundsAndPlayers._id);
-    //        return res.json(gameWithRoundsAndPlayers);
-    //    })
+    res.json(game);
 };
 
 exports.update = function(req, res, next){
@@ -188,12 +221,12 @@ exports.list = function(req, res, next){
         return res.status(500).send("Unable to read user.");
 
     if (user.admin) {
-        Game.find().then(function(games) {
+        Game.find({}).then(function(games) {
             console.log("Returning all games in DB");
             return res.json(games);
         }).catch(function(err) {
-            console.log(err, "Error returing games");
-            return;
+            console.log(err, "Error returning games");
+            return res.status(500).send(err, "Error returning games");
         })
     } else {
         user.deepPopulate('games.rounds.themes', 'games.players', function (err, _user) {
@@ -209,18 +242,35 @@ exports.list = function(req, res, next){
 
 exports.deleteAll = function(req, res, next) {
     var user = req.user;
-    user.games = [];
+    var gameIds = user.games;
 
-    user.saveAsync()
-        .then(function(user) {
-            return Game.removeAsync({})
-        }).then(function (games, err) {
-            if (err) {
-                res.status(500).send(err);
-            } else {
-                res.status(200).send("Deleted games for user: " + user.username);
-            }
-        });
+    if (user.admin){
+        gameIds = {};
+    }
+
+    // TODO: remove games from users in middleware post remove;
+    Game.find(gameIds)
+        .then(function(games) {
+        console.log("Deleting games: " + JSON.stringify(gameIds));
+        return Game.remove(games);
+    }).then(function(removedGames){
+        console.log("Deleted %d games", removedGames.length);
+        return res.json(removedGames);
+    }).catch(function(err){
+        console.log(err, "Error deleting games");
+        res.status(500).send(err);
+    });
+
+    //user.saveAsync()
+    //    .then(function(user) {
+    //        return Game.removeAsync({})
+    //    }).then(function (games, err) {
+    //        if (err) {
+    //            res.status(500).send(err);
+    //        } else {
+    //            res.status(200).send("Deleted games for user: " + user.username);
+    //        }
+    //    });
 };
 
 // Invites

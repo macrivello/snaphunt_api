@@ -9,8 +9,8 @@ module.exports = function() {
     require('../app/models/theme.server.model');
     require('../app/models/photo.server.model');
     require('../app/models/round.server.model');
-    require('../app/models/game.server.model');
     require('../app/models/user.server.model');
+    require('../app/models/game.server.model');
 
 	return db;
 };
