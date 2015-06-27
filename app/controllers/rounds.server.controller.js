@@ -62,34 +62,8 @@ exports.readRound = function(req, res, next){
     return res.json(round);
 };
 
-exports.selectTheme  = function(req, res, next, themeId) {
-    // Populated from getRound call
-    var user = req.user;
-    var round = req.round;
-    if (!round || !user) {
-        return res.status(500).send("Unable to read round.");
-    }
 
-    // TODO: add verification on themeId
-    if (round.judge != user._id) {
-        console.log("User selecting theme for round is not judge. judge: '%s' user: '%s'",
-            round.judge, user._id);
 
-        return res.status(401).send("User selecting theme for round is not judge. judge: '%s' user: '%s'",
-            round.judge, user._id);
-    }
+exports.updateRound = function(req, res, next) {
 
-    round.selectedTheme = themeId;
-    round.active = true;
-    round.saveAsync().then(function (_round) {
-        console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, themeId);
-    }).catch(function(err){
-        return res.status(500).send("Unable to set selected theme for round.", err);
-    });
-
-    //TODO: fire event that round has been started.
-    //process.emit(Events.themeSelected, );
-
-    next();
-
-};
+}

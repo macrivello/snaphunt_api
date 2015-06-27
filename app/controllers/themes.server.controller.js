@@ -7,11 +7,23 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     User = require('mongoose').model('User'),
     Theme = require('mongoose').model('Theme'),
     events = require('events'),
+    Events = require('../events/events.server'),
     eventEmitter = new events.EventEmitter();
 
 exports.list = function(req, res, next) {
-    console.log('Listing themes');
-    Theme.find({}, function(err, themes) {
+    console.log('Listing themes for round.');
+    console.log(JSON.stringify(req.round));
+
+    var lookup;
+
+    if (!req.round.themes || req.round.themes.length == 0) {
+        console.log("no themes");
+        lookup = {};
+    } else {
+        lookup = { '_id': { $in: req.round.themes}};
+    }
+
+    Theme.find(lookup, function(err, themes) {
         if (err) {
             return next(err);
         }
@@ -55,5 +67,47 @@ exports.getTheme = function(req, res, next, themeId) {
             return res.status(500).send("Unable to read theme. " + err);
         })};
 
+exports.selectTheme  = function(req, res, next) {
+    // Populated from getRound call
+    var user = req.user;
+    var game = req.game;
+    var round = req.round;
+    var theme = req.theme;
 
+    if (!round || !user) {
+        return res.status(500).send("Unable to read round.");
+    }
+
+    console.log("Select Theme: " + JSON.stringify(theme));
+
+    // TODO: add verification on themeId
+    if (round.judge != user._id) {
+        console.log("User selecting theme for round is not judge. judge: '%s' user: '%s'",
+            round.judge, user._id);
+
+        return res.status(401).send("User selecting theme for round is not judge. judge: '%s' user: '%s'",
+            round.judge, user._id);
+    }
+
+    round.selectedTheme = themeId;
+    round.active = true;
+    round.saveAsync().then(function (_round) {
+        console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, themeId);
+        return res.send("Round %d theme: " + theme.phrase, round.roundNumber);
+    }).catch(function(err){
+        return res.status(500).send("Unable to set selected theme for round.", err);
+    });
+
+    //TODO: fire event that round has been started.
+    process.emit(Events.themeSelected, {"userDigestIdOfCreator" : user.userdigest, "game" : game} );
+};
+
+exports.readTheme = function(req, res, next) {
+    var theme = req.theme;
+    if (!theme) {
+        res.status(500).send("Error reading Theme");
+    }
+
+    res.json(theme);
+};
 

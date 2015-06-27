@@ -6,7 +6,8 @@ module.exports = function(app) {
     var router = app.Router({mergeParams: true});
 
     router.route('/rounds/:roundId')
-        .get(rounds.readRound);
+        .get(rounds.readRound)
+        .put(rounds.updateRound);
 
     router.route('/rounds/')
         .get(rounds.listRounds);

@@ -7,6 +7,11 @@ module.exports = function(app) {
     router.route('/themes')
         .get(themes.list)
         .delete(themes.delete);
+
+    router.route('/themes/:themeId')
+        .get(themes.readTheme)
+        .post(themes.selectTheme);
+
     router.route('/themes/:themeId/like')
         .get(themes.like);
     router.route('/themes/:themeId/dislike')

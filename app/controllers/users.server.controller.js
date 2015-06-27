@@ -54,7 +54,9 @@ function onNewGameCreated (data) {
 }
 
 function onThemeSelected (data) {
-
+    console.log("onThemeSelected");
+    var game = data.game;
+    var userDigestIdOfCreator = data.userDigestIdOfCreator;
 }
 
 var SALT_WORK_FACTOR = 10; // This was completely arbitrary
