@@ -32,22 +32,29 @@ function onNewGameCreated (data) {
         }
     }
 
-    console.log("Searching for usersDigests: " + JSON.stringify(userDigestIds));
+    // TODO: Need a more efficient way to update game as invite
     UserDigest.findAsync({'_id': { $in: userDigestIds}})
         .then(function(userDigests) {
-            console.log("need to send invitations to these userdigest ids: " + userDigests);
+            //console.log("need to send invitations to these userdigest ids: " + userDigests);
 
             var userIds = [];
             for (var i = 0; i < userDigests.length; i++) {
                 userIds.push(userDigests[i].userId);
             }
 
-            return User.update({_id: { $in: userIds}}, {$push: {'invitations': gameId}});
+            return User.findAsync({_id: { $in: userIds}});
+            //return User.update({_id: { $in: userIds}}, {$addToSet: {'invitations': gameId}});
         }).then(function (users){
+            for (var i = 0; i < users.length; i++){
+                var user = users[i];
+                console.log("Adding game invite %s to user %s", gameId, user.username);
+                user.invitations.push(gameId);
+                user.save();
+            }
             // add game to invite for all users.
-            console.log("Added game to players invites");
-            //_this.sendGcmMessageToGcmId(req, res, next, userIds);
+            //console.log("Updated users with game invite");
 
+            //_this.sendGcmMessageToGcmId(req, res, next, userIds);
     }).catch(function(e) {
         console.log("Error looking up users. " + e);
     });

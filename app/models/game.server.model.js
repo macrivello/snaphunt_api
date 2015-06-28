@@ -9,6 +9,7 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
 var GameSchema = new Schema({
+    gameName: String,
     roundTimeLimit: { type: Number, default: 720 }, // In minutes. 720 == 12 hours
     numberOfRounds: { type: Number, default: 10 }, // TODO: Should be points to win, right?
     currentRound: { type: Number, default: 0 }, // '0' will also indicate game has not started
@@ -29,6 +30,11 @@ GameSchema.plugin(deepPopulate, null);
 GameSchema.pre('save',
     function(next) {
         this.timeLastModified = Date.now();
+
+        // TODO: Make default gamename a random phrase?
+        if(!this.gameName || this.gameName == "")
+            this.gameName = this._id.toString();
+
         next();
     }
 );
