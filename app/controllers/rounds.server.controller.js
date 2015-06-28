@@ -66,4 +66,26 @@ exports.readRound = function(req, res, next){
 
 exports.updateRound = function(req, res, next) {
 
-}
+};
+
+exports.deleteAll = function(req, res, next) {
+    var user = req.user;
+    var roundIds = req.game != null ? req.game.rounds : [];
+
+    if (user.admin){
+        roundIds = {};
+    }
+
+    // TODO: remove games from users in middleware post remove;
+    Round.find(roundIds)
+        .then(function(rounds) {
+            console.log("Deleting rounds: " + JSON.stringify(roundIds));
+            return Round.remove(rounds);
+        }).then(function(removedRounds){
+            console.log("Deleted %d rounds", removedRounds.length);
+            return res.json(removedRounds);
+        }).catch(function(err){
+            console.log(err, "Error deleting rounds");
+            res.status(500).send(err);
+        });
+};

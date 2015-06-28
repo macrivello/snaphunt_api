@@ -10,7 +10,8 @@ module.exports = function(app) {
         .put(rounds.updateRound);
 
     router.route('/rounds/')
-        .get(rounds.listRounds);
+        .get(rounds.listRounds)
+        .delete(rounds.deleteAll);
 
     // TODO: Add to Photo routes
     //router.route('/rounds/:roundId/photo')

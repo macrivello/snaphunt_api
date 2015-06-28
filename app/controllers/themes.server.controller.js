@@ -81,19 +81,18 @@ exports.selectTheme  = function(req, res, next) {
     console.log("Select Theme: " + JSON.stringify(theme));
 
     // TODO: add verification on themeId
-    if (round.judge != user._id) {
+    if (round.judge.toString() != user._id.toString()) {
         console.log("User selecting theme for round is not judge. judge: '%s' user: '%s'",
             round.judge, user._id);
 
-        return res.status(401).send("User selecting theme for round is not judge. judge: '%s' user: '%s'",
-            round.judge, user._id);
+        return res.status(401).send("User selecting theme for round is not judge");
     }
 
-    round.selectedTheme = themeId;
+    round.selectedTheme = theme._id;
     round.active = true;
     round.saveAsync().then(function (_round) {
-        console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, themeId);
-        return res.send("Round %d theme: " + theme.phrase, round.roundNumber);
+        console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, theme._id);
+        return res.send("Round " + round.roundNumber + " theme: " + theme.phrase);
     }).catch(function(err){
         return res.status(500).send("Unable to set selected theme for round.", err);
     });

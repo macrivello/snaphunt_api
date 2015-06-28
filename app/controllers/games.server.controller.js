@@ -27,6 +27,10 @@ exports.create = function(req, res, next) {
     var ids = req.query.id;
     if (ids){
         if (ids instanceof Array){
+            // Add creator of game to first position in list, this
+            //  helps when setting users as judge
+            game.players.push(user._id);
+
             for (var i = 0; i < ids.length; i++) {
                 console.log("Adding player to game: " + ids[i]);
                 game.players.push(new ObjectId(ids[i]));
@@ -41,112 +45,70 @@ exports.create = function(req, res, next) {
     }
 
     var i, r = [];
+    // TODO: don't make numThemeChoices hardcoded
+    var numThemeChoices = 3;
+    var tempRound, numPlayers = game.players.length, numRounds = game.numberOfRounds;
 
-    for (i = 0; i < game.numberOfRounds; i++) {
-        r.push({roundNumber: i+1});
-    }
+    Theme.findRandom().limit(numRounds * numThemeChoices).exec(function (err, themes) {
+        if (err) {
+            console.log(err, "Error creating new game - theme population");
+            return res.status(500).send(err);
+        }
 
-    Round.createAsync(r)
-        .then(function(roundsCreated) {
-            var roundIds = [];
-            var numRounds = roundsCreated.length;
-            console.log("%d rounds created.", numRounds);
-            for (i = 0; i < numRounds; i++) {
-                roundIds.push(roundsCreated[i]._id);
+        var numThemes = themes.length ? themes.length : 0;
+        console.log("theme findrandom return : " + JSON.stringify(themes));
+
+        for (i = 0; i < game.numberOfRounds; i++) {
+            tempRound = new Round();
+            tempRound.roundNumber = i+1;
+            tempRound.judge = game.players[i % numPlayers];
+            tempRound.themes = [];
+
+            for (var j = 0; j < numThemeChoices; j++) {
+                // this looks kind of funky.
+                var ndx = ((i * numThemeChoices) % numThemes);
+                var themeToAdd = themes[ndx + j]._id;
+
+                console.log("Adding theme %s to round %s", themeToAdd, tempRound._id);
+                tempRound.themes.push(themeToAdd);
             }
-            game.rounds = roundIds;
-            return game.saveAsync();
-        }).then(function(gameSaved){
-            game = gameSaved[0];
-            console.log("User: " + user.username);
-            console.log("New Game created. Game: " + game._id);
 
-            process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
+            r.push(tempRound);
+        }
 
-            user.games.push(game._id);
+        Round.createAsync(r)
+            .then(function(roundsCreated) {
+                var roundIds = [];
+                var numRounds = roundsCreated.length;
+                console.log("%d rounds created.", numRounds);
+                for (i = 0; i < numRounds; i++) {
+                    roundIds.push(roundsCreated[i]._id);
+                }
+                game.rounds = roundIds;
 
-            return user.saveAsync();
-        }).then(function(_user) {
-            console.log("Saved new game.");
-            res.json(game);
-        }).catch(function(err) {
-            console.log(err, "Error creating new game");
-            res.status(500).send(err);
-        });
+                return game.saveAsync();
+            }).then(function(gameSaved){
+                game = gameSaved[0];
+                console.log("User: " + user.username);
+                console.log("New Game created. Game: " + game._id);
 
+                process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
+
+                user.games.push(game._id);
+
+                return user.saveAsync();
+            }).then(function(_user) {
+                console.log("Saved new game.");
+                res.json(game);
+            }).catch(function(err) {
+                console.log(err, "Error creating new game");
+                res.status(500).send(err);
+            });
+
+    });
 
     // TODO: add a GameOptions model for Users that would include number of themes to choose from
     // TODO: currently just using same three themes for each round
-    //Theme.findRandom({}, {}, { limit: 3  }).execAsync()
-    //    .then(function(themes) {
-    //        if (themes && themes.length < 3) {
-    //            console.log('Creating new themes');
-    //            // Create 3 dummy themes
-    //            var newThemes = [{phrase: 'test'}, {phrase: 'test2'}, {phrase: 'test3'}];
-    //
-    //            return Theme.createAsync(newThemes);
-    //        }
-    //
-    //        return themes;
-    //    }).then(function (themes) {
-    //        // create Theme array to add to Rounds
-    //        //console.log("Themes.findRandom returned: " + JSON.stringify(themes));
-    //        var themeIds = [];
-    //        for (i = 0; i < themes.length; i++){
-    //            themeIds.push(themes[i]._id);
-    //        }
-    //
-    //        // Create rounds for game.
-    //        // TODO : a cleaner solution please...
-    //        var r = [];
-    //        console.log("number of rounds: " + game.numberOfRounds);
-    //        for (i = 0; i < game.numberOfRounds; i++) {
-    //            r.push({roundNumber: i+1,
-    //                    themes: themeIds});
-    //        }
-    //
-    //        return Round.createAsync(r);
-    //    }).then(function(roundsReturned) {
-    //        console.log("Created Rounds for new Game");
-    //
-    //        var numRounds = roundsReturned.length;
-    //        if (numRounds != game.numberOfRounds) {
-    //            console.log("Error creating %d rounds. Only created %d ", game.numberOfRounds, numRounds);
-    //            return res.status(500).send("Error creating new game. ");
-    //        }
-    //
-    //        var rounds = roundsReturned;
-    //        for (i = 0; i < numRounds; i++) {
-    //            var round = rounds[i];
-    //            if (i == 0) {
-    //                round.judge = user.userDigest;
-    //            }
-    //            game.rounds[i] = round._id;
-    //        }
-    //
-    //        return game.saveAsync();
-    //    }).then(function(gameSaved){
-    //        var game = gameSaved[0];
-    //        console.log("User: " + user.username);
-    //        console.log("New Game created. Game: " + game._id);
-    //
-    //        process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
-    //
-    //        user.games.push(game._id);
-    //
-    //        return user.saveAsync();
-    //    }).then(function(_user){
-    //        var user = _user[0];
-    //        console.log("Updated %s with new game.", user.username);
-    //
-    //        // TODO: Set as invitation to players. Send out push notifications.
-    //
-    //        return res.json(game);
-    //    }).catch(function(err){
-    //        console.log("Error creating new game. " + err);
-    //
-    //        return res.status(500).send("Error creating new game. " + err);
-    //    });
 };
 
 // Add Game object with id 'gameId' to request object field, req.game

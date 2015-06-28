@@ -391,8 +391,7 @@ exports.updateProfilePhoto = function (req, res, next) {
     var user = req.user;
     var userPhoto = new Photo(req.body);
 
-    console.log(JSON.stringify(userPhoto));
-    console.log(JSON.stringify(user));
+    console.log("new profile photo: " + JSON.stringify(userPhoto));
 
     if(!user){
         console.log("Invalid user");
@@ -402,8 +401,13 @@ exports.updateProfilePhoto = function (req, res, next) {
     // TODO: Delete off of S3
     var existingProfilePhoto = user.profilePhoto;
     if (existingProfilePhoto) {
-        console.log("removing old profile photo");
-        existingProfilePhoto.remove();
+        console.log("removing old profile photo: " + existingProfilePhoto);
+        Photo.find(existingProfilePhoto)
+            .then(function (photo) {
+                photo.remove();
+            }).catch(function (err){
+                console.log("Error deleting photo. " + err);
+            });
     }
 
     var photoId;
@@ -415,19 +419,21 @@ exports.updateProfilePhoto = function (req, res, next) {
 
             return user.saveAsync();
         }).then(function(savedUser){
-            var u = savedUser[0];
-            return UserDigest.findAsync(u.userDigest);
+            user = savedUser[0];
+
+            return UserDigest.findAsync(user.userDigest);
         }).then(function(userDigest) {
             var ud = userDigest[0];
             ud.profilePhoto = photoId;
             return ud.saveAsync();
         }).then(function(savedUserDigest){
             console.log("Successfully updated profile photo for user: '%s' ", user._id);
+            console.log("updated user: " + JSON.stringify(user));
             return res.json(savedUserDigest[0]);
         }).catch(function(err){
             var msg = "Error updating profile photo for user: " + user._id;
             console.log(err, msg);
-            return res.status(500).send(err, msg);
+            return res.status(500).send(err + " " + msg);
         });
 
 

@@ -12,7 +12,7 @@ var PhotoSchema = new Schema({
     sizeThumb: Number, //bytes
     hash: String,
     hashThumb: String,
-    theme: [{type: Schema.ObjectId, ref: 'Theme'}],
+    theme: {type: Schema.ObjectId, ref: 'Theme'},
     timeCreated: { type: Date, default: Date.now }
 });
 
