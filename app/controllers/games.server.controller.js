@@ -12,9 +12,9 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Events = require('../events/events.server'),
     eventEmitter = new event.EventEmitter();
 
+
 //TODO: Assert new user is a player in the game.
 //TODO: Add new game to invitations of other players
-
 exports.create = function(req, res, next) {
     if (!req.body) {
         console.log("Empty request body. Can't create game.");
@@ -26,11 +26,12 @@ exports.create = function(req, res, next) {
 
     var ids = req.query.id;
     if (ids){
-        if (ids instanceof Array){
-            // Add creator of game to first position in list, this
-            //  helps when setting users as judge
-            game.players.push(user._id);
+        // Add creator of game to first position in list, this
+        //  helps when setting users as judge
+        console.log("Adding creator to game players: " + user.userDigest);
+        game.players.push(user.userDigest);
 
+        if (ids instanceof Array){
             for (var i = 0; i < ids.length; i++) {
                 console.log("Adding player to game: " + ids[i]);
                 game.players.push(new ObjectId(ids[i]));
@@ -90,9 +91,9 @@ exports.create = function(req, res, next) {
             }).then(function(gameSaved){
                 game = gameSaved[0];
                 console.log("User: " + user.username);
-                console.log("New Game created. Game: " + game._id);
+                console.log("New Game created. Game: " + game.gameName);
 
-                process.emit(Events.gameCreated, { "userDigestIdOfCreator" : user.userDigest, "game" : game});
+                process.emit(Events.gameCreated, { "usernameOfCreator" : user.username , "userDigestIdOfCreator" : user.userDigest, "game" : game});
 
                 user.games.push(game._id);
 
@@ -213,11 +214,18 @@ exports.deleteAll = function(req, res, next) {
     // TODO: remove games from users in middleware post remove;
     Game.find(gameIds)
         .then(function(games) {
-        console.log("Deleting games: " + JSON.stringify(gameIds));
-        return Game.remove(games);
+            // Calling Game.remove(games) was not executing middleware hook
+            console.log("Deleting games: " + JSON.stringify(games));
+            var removedGames = [];
+            for (var i = 0; i < games.length; i++) {
+                var game = games[i];
+                game.remove();
+                removedGames.push(game.gameName);
+            }
+        return removedGames;
     }).then(function(removedGames){
-        console.log("Deleted %d games", removedGames.length);
-        return res.json(removedGames);
+        console.log("Deleted games: \n", JSON.stringify(removedGames));
+        return res.send("Deleted games: \n", JSON.stringify(removedGames));
     }).catch(function(err){
         console.log(err, "Error deleting games");
         res.status(500).send(err);
@@ -271,6 +279,47 @@ exports.deleteInvites = function(req, res, next) {
             } else {
                 res.status(200).send("Deleted invitations for user: " + user.username);
             }
+        });
+};
+
+exports.acceptInvite = function(req, res, next) {
+    var user = req.user;
+    var game = req.game;
+    var userGames = user.games;
+    var userInvites = user.invitations;
+
+    if (!user)
+        return res.status(500).send("Unable to read user.");
+    if (!game)
+        return res.status(500).send("Unable to read game.")
+
+    // move game from users.invitations to user.games
+    for (var i = 0; i < userInvites.length; i++) {
+        if (userInvites[i].toString() == game._id.toString()){
+            userInvites.splice(i, 1);
+            userGames.push(game._id);
+        }
+    }
+
+    // mark game as active
+    var ndx = game.playersJoined.indexOf(user.userdigest);
+    if (ndx > -1) {
+        console.log("Adding user %s to playersJoined list.", user.userDigest);
+        game.playersJoined.push(user.userDigest);
+    }
+
+    game.saveAsync()
+        .then(function(_game) {
+            console.log("saved game");
+            game = _game;
+
+            return user.saveAsync();
+        }).then(function(_user){
+            console.log("saved user");
+
+            res.json(game);
+        }).catch(function(err){
+            res.status(500).send("Error marking game as active." + err);
         });
 };
 

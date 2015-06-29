@@ -21,11 +21,15 @@ exports.list = function (req, res, next) {
     var idArr = req.query.id;
 
     var lookup;
-    if (idArr){
-        for(var i = 0; i < idArr.length; i++) {
-            ids.push(idArr[i]);
-        }
-        lookup = { '_id': { $in: ids}};
+    if (idArr)
+        if (idArr instanceof Array) {
+            for (var i = 0; i < idArr.length; i++) {
+                ids.push(idArr[i]);
+            }
+            lookup = {'_id': {$in: ids}};
+        } else {
+            // idArr will be a single ObjectId here
+            lookup = {'_id': idArr};
     } else {
         // Find all userDigests
         lookup = {};
@@ -85,24 +89,21 @@ exports.delete = function(req, res, next) {
 
     UserDigest.find({})
         .then(function(userDigests) {
-            console.log("1. found userdigests: " + JSON.stringify(userDigests));
             userDigestList = userDigests;
 
             return User.find({})
         }).then(function(users) {
-            console.log("2");
 
             var ids = [];
             var id;
             // if userDigestId.userId not in
             for (var i = 0; i < users.length; i++) {
-                id = users[i]._id
+                id = users[i]._id;
                 console.log("Adding user: " + id + " to userList");
                 ids.push(id);
             }
             return ids;
         }).then(function(ids) {
-            console.log("3");
 
             var userDigestObjectsToDelete = [];
             var ud, uid;
@@ -116,7 +117,6 @@ exports.delete = function(req, res, next) {
             }
             return userDigestObjectsToDelete;
         }).then(function (userDigestsToDelete) {
-            console.log("4");
 
             return UserDigest.remove(userDigestsToDelete)
         }).then (function(removed) {

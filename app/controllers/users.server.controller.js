@@ -1,6 +1,7 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
+    UserDigestController = require('./userdigest.server.controller.js'),
     User = require('mongoose').model('User'),
     UserDigest = require('mongoose').model('UserDigest'),
     Photo = require('mongoose').model('Photo'),
@@ -19,9 +20,11 @@ function onNewGameCreated (data) {
     console.log("Adding new game to players invitations.");
     var game = data.game;
     var gameId = data.game._id;
+    var usernameOfCreator = data.usernameOfCreator;
     var userDigestIdOfCreator = data.userDigestIdOfCreator;
     //console.log("game: " + JSON.stringify(game));
     console.log("gameId: " + gameId);
+    console.log("usernameOfCreator: " + usernameOfCreator);
     console.log("userDigestIdOfCreator: " + userDigestIdOfCreator);
 
     var userDigestIds = [];
@@ -178,7 +181,7 @@ function saveUsers(users, res, next) {
                 console.log("Successfully registered user: " + user.username);
             }
 
-            res.json(usersCreated);
+            res.json(user);
         }).catch(function (err) {
             console.error('Error: ' + err);
             res.status(500).send("Error registering user. " + err);
@@ -318,10 +321,13 @@ exports.deleteAll = function(req, res, next) {
         .then(function (users){
             return User.remove(users)
         }).then(function(deletedUsers) {
-            res.json(deletedUsers);
+            console.log("Deleted all users, now deleting userdigests");
+            UserDigestController.delete(req, res, next);
+            //res.json(deletedUsers);
         }).catch(function(e){
             res.status(500).send("Error deleting users: " + e);
         });
+
 };
 
 // User is passed in after validated from passport authenticate call

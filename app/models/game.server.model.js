@@ -6,15 +6,20 @@
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
     User = require('mongoose').model('User'),
-    Schema = mongoose.Schema;
+    UserDigest = require('mongoose').model('UserDigest'),
+    Schema = mongoose.Schema,
+    events = require('events'),
+    Events = require('../events/events.server'),
+    eventEmitter = new events.EventEmitter();
 
 var GameSchema = new Schema({
     gameName: String,
     roundTimeLimit: { type: Number, default: 720 }, // In minutes. 720 == 12 hours
     numberOfRounds: { type: Number, default: 10 }, // TODO: Should be points to win, right?
-    currentRound: { type: Number, default: 0 }, // '0' will also indicate game has not started
+    currentRound: { type: Number, default: 1 },
     rounds: [{type: Schema.ObjectId, ref: 'Round'}],
     players: [{type: Schema.ObjectId, ref: 'UserDigest'}],
+    playersJoined: [{type: Schema.ObjectId, ref: 'UserDigest'}],
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now },
     timeEnded: Date,
@@ -35,31 +40,52 @@ GameSchema.pre('save',
         if(!this.gameName || this.gameName == "")
             this.gameName = this._id.toString();
 
+        // TODO: this is crude. add some validation?
+        if(!this.gameStarted && this.playersJoined.length == this.players.length){
+            this.gameStarted = true;
+            process.emit(Events.gameStarted, this);
+        }
+
         next();
     }
 );
 
+// TODO: Make this leaner. this will be a heavy operation.
 GameSchema.post('remove', function (doc) {
     // Remove references
     var game = doc;
     console.log("Game post remove. Removed game: " + game._id);
     for (var i = 0; i < game.players.length; i++){
-        var user = game.players[i];
-        var userGames = user.games;
-        var userInvites = user.invitations;
+        var userDigestId = game.players[i];
+        console.log("Removing games and invites for user: " + userDigestId);
+        // grab userdigest, get users, then update games and invitations
+        UserDigest.find(userDigestId)
+            .then(function(_userDigest){
+                console.log("Found userdigest: " + _userDigest);
+                var userId = _userDigest.userId;
+                return User.find(userId);
+            }).then(function(user){
+                console.log("Found User: " + user);
+                // Got user. Remove game from games and invitations.
+                var userGames = user.games;
+                var userInvites = user.invitations;
 
-        var gameIndex = userGames.indexOf(game._id);
-        var inviteIndex = userInvites.indexOf(game._id);
-        if (gameIndex > -1) {
-            console.log("Removing game from user");
-            userGames = userGames.splice(gameIndex, 1);
-        }
-        if (inviteIndex > -1) {
-            console.log("Removing invite from user");
-            userInvites = userInvites.splice(inviteIndex, 1);
-        }
-
-        user.save();
+                var gameIndex = userGames.indexOf(game._id);
+                var inviteIndex = userInvites.indexOf(game._id);
+                if (gameIndex > -1) {
+                    console.log("Removing game from user");
+                    user.games = userGames.splice(gameIndex, 1);
+                }
+                if (inviteIndex > -1) {
+                    console.log("Removing invite from user");
+                    user.invitations = userInvites.splice(inviteIndex, 1);
+                }
+                user.save();
+            }).then(function(savedUser) {
+                console.log("Updated user with removed game.");
+            }).catch(function(err){
+                console.log("Error remove game from user");
+            });
     }
 
     //TODO: Remove Rounds

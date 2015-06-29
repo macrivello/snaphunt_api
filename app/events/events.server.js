@@ -2,7 +2,9 @@
 module.exports = {
     // Game
     gameCreated : "gameCreated",
+    gameStarted : "gameStarted",
     gameEnded : "gameEnded",
+    gameRemoved : "gameRemoved",
 
     // Photo
     photoSubmitted : "photoSubmitted",

@@ -16,6 +16,9 @@ module.exports = function(router) {
         .get(games.listInvites)
         .delete(games.deleteInvites);
 
+    router.route('/invites/:gameId/accept')
+        .get(games.acceptInvite);
+
     //router.route('/invites/{gameId}')
     //    .get(games.readInvite)
     //    .put(games.updateInvite);
