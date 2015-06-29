@@ -283,6 +283,7 @@ exports.deleteInvites = function(req, res, next) {
 };
 
 exports.acceptInvite = function(req, res, next) {
+    console.log("accepting invite");
     var user = req.user;
     var game = req.game;
     var userGames = user.games;
@@ -291,27 +292,28 @@ exports.acceptInvite = function(req, res, next) {
     if (!user)
         return res.status(500).send("Unable to read user.");
     if (!game)
-        return res.status(500).send("Unable to read game.")
+        return res.status(500).send("Unable to read game.");
 
     // move game from users.invitations to user.games
     for (var i = 0; i < userInvites.length; i++) {
         if (userInvites[i].toString() == game._id.toString()){
-            userInvites.splice(i, 1);
-            userGames.push(game._id);
+            console.log("moveing game to user.games from user.invitations");
+            user.invitations.splice(i, 1);
+            user.games.push(game._id);
         }
     }
 
-    // mark game as active
+    // mark player as joined, add to game.playersJoined
     var ndx = game.playersJoined.indexOf(user.userdigest);
     if (ndx > -1) {
-        console.log("Adding user %s to playersJoined list.", user.userDigest);
+        console.log("Adding user %s to playersJoined list.", user.username);
         game.playersJoined.push(user.userDigest);
     }
 
     game.saveAsync()
         .then(function(_game) {
             console.log("saved game");
-            game = _game;
+            game = _game[0];
 
             return user.saveAsync();
         }).then(function(_user){
