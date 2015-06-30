@@ -44,7 +44,7 @@ module.exports = function() {
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
 
     // Child Routers, pass mergeParams: true in Router constructor.
-    var photoRoutes = require('../app/routes/photos.server.routes.js')(express);
+    var photoRoutes = require('../app/routes/photos.server.routes.js')(express, router);
     var themeRoutes = require('../app/routes/themes.server.routes.js')(express);
     var roundRoutes = require('../app/routes/rounds.server.routes.js')(express);
 

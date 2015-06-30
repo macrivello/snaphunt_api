@@ -79,3 +79,15 @@ exports.readPhoto = function (req, res, next) {
 
     res.json(photo);
 };
+
+exports.selectWinner = function (req, res, next) {
+    console.log("select winner");
+    var photo = req.photo;    // This should be populated by getPhoto()
+
+    if (!photo)
+        return res.status(500).send("Unable to read photo.");
+
+    return res.send("NOT IMPLEMENTED YET")
+};
+
+

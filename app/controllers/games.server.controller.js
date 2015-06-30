@@ -297,7 +297,7 @@ exports.acceptInvite = function(req, res, next) {
     // move game from users.invitations to user.games
     for (var i = 0; i < userInvites.length; i++) {
         if (userInvites[i].toString() == game._id.toString()){
-            console.log("moveing game to user.games from user.invitations");
+            console.log("moving game to user.games from user.invitations");
             user.invitations.splice(i, 1);
             user.games.push(game._id);
         }

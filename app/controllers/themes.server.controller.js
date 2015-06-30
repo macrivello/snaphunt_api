@@ -81,7 +81,7 @@ exports.selectTheme  = function(req, res, next) {
     console.log("Select Theme: " + JSON.stringify(theme));
 
     // TODO: add verification on themeId
-    if (round.judge.toString() != user._id.toString()) {
+    if (round.judge.toString() != user.userDigest.toString()) {
         console.log("User selecting theme for round is not judge. judge: '%s' user: '%s'",
             round.judge, user._id);
 
@@ -90,6 +90,12 @@ exports.selectTheme  = function(req, res, next) {
 
     round.selectedTheme = theme._id;
     round.active = true;
+
+    if(!game.gameStarted){
+        game.gameStarted = true;
+        game.save();
+    }
+
     round.saveAsync().then(function (_round) {
         console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, theme._id);
         return res.send("Round " + round.roundNumber + " theme: " + theme.phrase);

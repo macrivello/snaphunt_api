@@ -66,19 +66,16 @@ GameSchema.post('remove', function (doc) {
                 return User.find(userId);
             }).then(function(user){
                 console.log("Found User: " + user);
-                // Got user. Remove game from games and invitations.
-                var userGames = user.games;
-                var userInvites = user.invitations;
 
-                var gameIndex = userGames.indexOf(game._id);
-                var inviteIndex = userInvites.indexOf(game._id);
+                var gameIndex = user.games.indexOf(game._id);
+                var inviteIndex = user.invitations.indexOf(game._id);
                 if (gameIndex > -1) {
                     console.log("Removing game from user");
-                    user.games = userGames.splice(gameIndex, 1);
+                    user.games.splice(gameIndex, 1);
                 }
                 if (inviteIndex > -1) {
                     console.log("Removing invite from user");
-                    user.invitations = userInvites.splice(inviteIndex, 1);
+                    user.invitations.splice(inviteIndex, 1);
                 }
                 user.save();
             }).then(function(savedUser) {

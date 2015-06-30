@@ -1,6 +1,6 @@
 var photos = require('../controllers/photos.server.controller.js');
 
-module.exports = function(app) {
+module.exports = function(app, _router) {
 
     var router = app.Router({mergeParams: true});
 
@@ -8,10 +8,14 @@ module.exports = function(app) {
     router.route('/photo')
         .post(photos.submitPhoto);
 
-    router.route('/photo/:id')
+    // This route will not sit on /game routes
+    _router.route('/photo/:photoId')
         .get(photos.readPhoto);
 
-    router.param('id', photos.getPhoto);
+    router.route('/photo/:photoId/winner')
+        .get(photos.selectWinner);
+
+    router.param('photoId', photos.getPhoto);
 
     return router;
 };
