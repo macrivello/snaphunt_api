@@ -4,7 +4,7 @@
 // created the changed state. i.e. dont send a push notification to the player who updated the photo.
 
 module.exports = {
-    gameStates: gameStates
+    GameStates: gameStates
 };
 
 var gameStates = {

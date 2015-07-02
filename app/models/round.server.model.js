@@ -4,6 +4,10 @@ var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
     Schema = mongoose.Schema;
 
+module.exports = {
+    RoundStates: roundStates
+};
+
 var roundStates = {
     //mongoose expect values for enum type
     NOT_STARTED: "NOT_STARTED",
@@ -31,6 +35,7 @@ var RoundSchema = new Schema({
     timeLastModifed: { type: Date, default: Date.now },
     timeEnded: Date,
     roundExpires: Date,
+    // This may no longer be necessary/applicable with RoundState enum
     allPhotosSubmitted: {type: Boolean, default: false}
 });
 

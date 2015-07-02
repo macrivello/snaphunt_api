@@ -1,8 +1,8 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    GameStates = require('../models/game.server.model'),
-    RoundStates = require('../models/round.server.model');
+    GameStates = require('../models/game.server.model').GameStates,
+    RoundStates = require('../models/round.server.model').RoundStates;
     Game = require('mongoose').model('Game'),
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
@@ -91,10 +91,11 @@ exports.selectTheme  = function(req, res, next) {
     }
 
     round.selectedTheme = theme._id;
-    round.active = true;
+    round.state = RoundStates.PLAYING;
 
-    if(!game.gameStarted){
-        game.gameStarted = true;
+    // TODO: Verify this is valid with this enum
+    if(!game.state == GameStates.STARTED){
+        game.state = GameStates.STARTED;
         game.save();
     }
 
@@ -105,7 +106,7 @@ exports.selectTheme  = function(req, res, next) {
         return res.status(500).send("Unable to set selected theme for round.", err);
     });
 
-    //TODO: fire event that round has been started.
+    //TODO: fire event that round has been started. do something with this!!
     process.emit(Events.themeSelected, {"userDigestIdOfCreator" : user.userdigest, "game" : game} );
 };
 
