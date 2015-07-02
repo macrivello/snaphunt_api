@@ -2,6 +2,7 @@ var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
     Game = require('mongoose').model('Game'),
+    GameStates = require('../models/game.server.model').gameStates,
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
     User = require('mongoose').model('User'),
@@ -30,6 +31,9 @@ exports.create = function(req, res, next) {
         //  helps when setting users as judge
         console.log("Adding creator to game players: " + user.userDigest);
         game.players.push(user.userDigest);
+
+        // Add to creator as joined player
+        game.playersJoined.push(user.userDigest);
 
         if (ids instanceof Array){
             for (var i = 0; i < ids.length; i++) {
@@ -305,9 +309,15 @@ exports.acceptInvite = function(req, res, next) {
 
     // mark player as joined, add to game.playersJoined
     var ndx = game.playersJoined.indexOf(user.userdigest);
-    if (ndx > -1) {
+    // userdigestId does not exist in playersJoined.
+    if (ndx < 0) {
         console.log("Adding user %s to playersJoined list.", user.username);
         game.playersJoined.push(user.userDigest);
+        if (game.playersJoined.length == game.players.length) {
+            game.state = GameStates.STARTED;
+
+            // TODO: an event will need to be fired. Clients need to get notified.
+        }
     }
 
     game.saveAsync()

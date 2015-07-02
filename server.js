@@ -10,6 +10,7 @@ var db = mongoose(),
 	passport = passport();
 
 app.listen(config.port);
+app.db = db;
 
 module.exports = app;
 console.log(process.env.NODE_ENV + ' server running at http://localhost:' + config.port);

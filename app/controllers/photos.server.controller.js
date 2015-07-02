@@ -29,14 +29,16 @@ exports.submitPhoto = function (req, res, next) {
 
     var photo = new Photo(req.body);
     photo.owner = user._id;
+    photo.theme = round.selectedTheme;
 
     photo.saveAsync()
         .then(function(photo){
-            // TODO: Would love to store photos as a map, ie round.photos[user._id] = photo;
-            round.photos.push = photo;
+            // Storing photos as key-value with key as userDigestId.
+            //   This is used for grabbing round photos from userdigest.
+            round.photos[user.userDigest] = photo;
 
             // Check if this is the final photo to be submitted for the round.
-            if (round.photos.length == game.players.length - 1) {
+            if (Object.keys(round.photos).length == game.players.length - 1) {
                 round.allPhotosSubmitted = true;
             }
 
@@ -90,4 +92,26 @@ exports.selectWinner = function (req, res, next) {
     return res.send("NOT IMPLEMENTED YET")
 };
 
+
+exports.getPhotoFromUserDigestId = function (req, res, next, userDigestId) {
+    var user = req.user;
+    var game = req.game;
+    var round = req.round;
+
+    // TODO: Make more specific.
+    if (!user || !game || !round) {
+        return res.status(500).send("Unable to read photo.");
+    }
+
+    console.log("Looking up submitted photo of: " + photoId);
+    var photoId = game.photo[userDigestId];
+
+    console.log("Looking up photoId: " + photoId);
+    Photo.findById(photoId)
+        .then(function(photo) {
+            res.json(photo);
+        }).catch(function(err){
+            return res.status(500).send("Error finding photo with ID: " + photoId);
+        })
+};
 

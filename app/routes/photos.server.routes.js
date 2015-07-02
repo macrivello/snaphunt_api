@@ -12,6 +12,9 @@ module.exports = function(app, _router) {
     _router.route('/photo/:photoId')
         .get(photos.readPhoto);
 
+    router.route('/photo/:userDigestId')
+        .get(photos.getPhotoFromUserDigestId);
+
     router.route('/photo/:photoId/winner')
         .get(photos.selectWinner);
 

@@ -3,6 +3,21 @@
 //TODO : add method to send push notification to all players on game update, except to the player who
 // created the changed state. i.e. dont send a push notification to the player who updated the photo.
 
+module.exports = {
+    gameStates: gameStates
+};
+
+var gameStates = {
+    NOT_STARTED: "NOT_STARTED",
+    STARTED: "STARTED",
+    ENDED: "ENDED",
+
+    // this seems weird but I'm pleasing mongoose
+    values: [this.NOT_STARTED,
+        this.STARTED,
+        this.ENDED]
+};
+
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
     User = require('mongoose').model('User'),
@@ -23,8 +38,7 @@ var GameSchema = new Schema({
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now },
     timeEnded: Date,
-    gameOver: { type: Boolean, default: false },
-    gameStarted: { type: Boolean, default: false }
+    state: { type: String, enum: gameStates, default: gameStates.NOT_STARTED}
 });
 
 // Register Plugins.
@@ -57,18 +71,28 @@ GameSchema.post('remove', function (doc) {
     console.log("Game post remove. Removed game: " + game._id);
     for (var i = 0; i < game.players.length; i++){
         var userDigestId = game.players[i];
-        console.log("Removing games and invites for user: " + userDigestId);
+        console.log("Removing games and invites for userDigestID: " + userDigestId);
         // grab userdigest, get users, then update games and invitations
         UserDigest.find(userDigestId)
             .then(function(_userDigest){
-                console.log("Found userdigest: " + _userDigest);
                 var userId = _userDigest.userId;
+
+                console.log("Found userId from digest: " + userId);
                 return User.find(userId);
             }).then(function(user){
-                console.log("Found User: " + user);
+                console.log("Found User from id: " + user.username);
+
+                console.log(" - looking for game: " + game._id);
 
                 var gameIndex = user.games.indexOf(game._id);
+                console.log("users games: " + JSON.stringify(user.games));
+                console.log(" --ndx: " + gameIndex);
+
                 var inviteIndex = user.invitations.indexOf(game._id);
+                console.log("users invitations: " + JSON.stringify(user.invitations));
+                console.log(" --ndx: " + inviteIndex);
+
+
                 if (gameIndex > -1) {
                     console.log("Removing game from user");
                     user.games.splice(gameIndex, 1);

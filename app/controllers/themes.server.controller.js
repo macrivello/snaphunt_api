@@ -1,6 +1,8 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
+    GameStates = require('../models/game.server.model'),
+    RoundStates = require('../models/round.server.model');
     Game = require('mongoose').model('Game'),
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
