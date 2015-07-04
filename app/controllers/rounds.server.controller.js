@@ -25,7 +25,6 @@ exports.getRound = function (req, res, next, roundId){
         .then(function(round){
             console.log("adding round to request object");
             req.round = round;
-            console.log("calling next(). req.path " + req.path);
             next();
         }).catch(function(err){
             return res.status(500).send("Error finding round by ID");

@@ -1,8 +1,6 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    GameStates = require('../models/game.server.model').GameStates,
-    RoundStates = require('../models/round.server.model').RoundStates;
     Game = require('mongoose').model('Game'),
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
@@ -10,6 +8,7 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Theme = require('mongoose').model('Theme'),
     events = require('events'),
     Events = require('../events/events.server'),
+    states = require('../models/states.server.enum'),
     eventEmitter = new events.EventEmitter();
 
 exports.list = function(req, res, next) {
@@ -27,7 +26,20 @@ exports.list = function(req, res, next) {
 
     Theme.find(lookup, function(err, themes) {
         if (err) {
-            return next(err);
+            res.status(500).send("Error retrieving themes: " + err);
+        }
+        else {
+            res.json(themes);
+        }
+    });
+};
+
+exports.listAll = function(req, res, next) {
+    console.log("Listing all themes");
+
+    Theme.find({}, function(err, themes) {
+        if (err) {
+            res.status(500).send("Error retrieving themes: " + err);
         }
         else {
             res.json(themes);
@@ -91,17 +103,17 @@ exports.selectTheme  = function(req, res, next) {
     }
 
     round.selectedTheme = theme._id;
-    round.state = RoundStates.PLAYING;
+    round.state = states.roundStates.PLAYING;
 
     // TODO: Verify this is valid with this enum
-    if(!game.state == GameStates.STARTED){
-        game.state = GameStates.STARTED;
+    if(!game.state == states.gameStates.STARTED){
+        game.state = states.gameStates.STARTED;
         game.save();
     }
 
     round.saveAsync().then(function (_round) {
         console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, theme._id);
-        return res.send("Round " + round.roundNumber + " theme: " + theme.phrase);
+        return res.json(_round);
     }).catch(function(err){
         return res.status(500).send("Unable to set selected theme for round.", err);
     });
@@ -119,3 +131,53 @@ exports.readTheme = function(req, res, next) {
     res.json(theme);
 };
 
+// Currently expecting an array of strings. Each string will be a new Theme's phrase
+exports.create = function(req, res, next) {
+    console.log("Create theme");
+    var phrases = req.body;
+    console.log("phrases: " + JSON.stringify(phrases));
+    var themes = [];
+    var themeIds = [];
+    if (phrases instanceof Array){
+        for (var i = 0; i < phrases.length; i++){
+            var phrase = phrases[i];
+            console.log("Creating theme with phrase: " + phrase);
+            themes.push(new Theme({phrase: phrase}));
+            //console.log("theme: " + JSON.stringify(theme));
+            //Theme.saveAsync()
+            //    .then(function(_theme){
+            //        console.log("saved theme: " + JSON.stringify(_theme));
+            //
+            //        themeIds.push(_theme._id);
+            //    })
+            //    .catch(function (err) {
+            //        console.log("error saving theme. " + err);
+            //    });
+        }
+    } else {
+        // TODO: stuff like this is vulnerable. arbitrary string length.
+        if (phrases instanceof String) {
+            themes.push(new Theme({phrase: phrases}));
+            //theme.saveAsync()
+            //    .then(function(_theme){
+            //        themeIds.push(_theme._id);
+            //    })
+            //    .catch(function (err) {
+            //        console.log("error saving theme. " + err);
+            //    });
+        } else {
+            return res.status(401).send("Invalid body");
+        }
+    }
+
+    Theme.createAsync(themes)
+        .then(function(_themes) {
+            console.log("created %d themes.", _themes.length);
+            res.send("Created " + _themes.length + " themes.");
+        }).catch(function (err) {
+            console.log("error saving themes. " + err);
+            res.status(500).send("Error creating themes. " + err);
+        });
+
+
+};

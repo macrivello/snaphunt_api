@@ -3,20 +3,6 @@
 //TODO : add method to send push notification to all players on game update, except to the player who
 // created the changed state. i.e. dont send a push notification to the player who updated the photo.
 
-module.exports = {
-    GameStates: gameStates
-};
-
-var gameStates = {
-    NOT_STARTED: "NOT_STARTED",
-    STARTED: "STARTED",
-    ENDED: "ENDED",
-
-    // this seems weird but I'm pleasing mongoose
-    values: [this.NOT_STARTED,
-        this.STARTED,
-        this.ENDED]
-};
 
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
@@ -25,6 +11,7 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     events = require('events'),
     Events = require('../events/events.server'),
+    states = require('./states.server.enum'),
     eventEmitter = new events.EventEmitter();
 
 var GameSchema = new Schema({
@@ -38,7 +25,7 @@ var GameSchema = new Schema({
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now },
     timeEnded: Date,
-    state: { type: String, enum: gameStates, default: gameStates.NOT_STARTED}
+    state: { type: String, default: states.gameStates.NOT_STARTED}
 });
 
 // Register Plugins.
@@ -51,8 +38,8 @@ GameSchema.pre('save',
         this.timeLastModified = Date.now();
 
         // TODO: Make default gamename a random phrase?
-        if(!this.gameName || this.gameName == "")
-            this.gameName = this._id.toString();
+            if(!this.gameName || this.gameName == "")
+                this.gameName = this._id.toString().slice(-5);
 
         // TODO: this is crude. add some validation?
         if(!this.gameStarted && this.playersJoined.length == this.players.length){

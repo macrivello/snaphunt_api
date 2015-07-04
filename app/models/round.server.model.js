@@ -2,29 +2,12 @@
 
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
+    states = require('./states.server.enum'),
     Schema = mongoose.Schema;
-
-module.exports = {
-    RoundStates: roundStates
-};
-
-var roundStates = {
-    //mongoose expect values for enum type
-    NOT_STARTED: "NOT_STARTED",
-    PLAYING: "PLAYER",
-    JUDGE_SELECTION: "JUDGE_SELECTION",
-    ENDED: "ENDED",
-
-    // this seems weird but I'm pleasing mongoose
-    values: [this.NOT_STARTED,
-            this.PLAYING,
-            this.JUDGE_SELECTION,
-            this.ENDED]
-};
 
 var RoundSchema = new Schema({
     roundNumber: {type: Number, default: 0},
-    state: { type: String, enum: roundStates, default: roundStates.NOT_STARTED},
+    state: { type: String, default: states.roundStates.NOT_STARTED},
     themes: [{type: Schema.ObjectId, ref: 'Theme'}],
     selectedTheme: {type: Schema.ObjectId, ref: 'Theme'},
     judge: {type: Schema.ObjectId, ref: 'User'},

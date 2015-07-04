@@ -2,9 +2,7 @@ var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
     Game = require('mongoose').model('Game'),
-    GameStates = require('../models/game.server.model').GameStates,
     Round = require('mongoose').model('Round'),
-    RoundStates = require('../models/round.server.model').RoundStates,
     Photo = require('mongoose').model('Photo'),
     User = require('mongoose').model('User'),
     UserDigest = require('mongoose').model('UserDigest'),
@@ -12,6 +10,7 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     event = require('events'),
     ObjectId = require('mongoose').Types.ObjectId,
     Events = require('../events/events.server'),
+    states = require('../models/states.server.enum'),
     eventEmitter = new event.EventEmitter();
 
 
@@ -25,6 +24,7 @@ exports.create = function(req, res, next) {
 
     var user = req.user; // this should be valid since its an authenticated route
     var game = new Game(req.body);
+    game.state = states.gameStates.NOT_STARTED;
 
     var ids = req.query.id;
     if (ids){
@@ -47,7 +47,7 @@ exports.create = function(req, res, next) {
         }
     } else {
         console.log("Invalid player IDs in query parameters.");
-        res.status(401).send("Invalid player IDs in query parameters");
+        return res.status(401).send("Invalid player IDs in query parameters");
     }
 
     var i, r = [];
@@ -62,21 +62,28 @@ exports.create = function(req, res, next) {
         }
 
         var numThemes = themes.length ? themes.length : 0;
-        console.log("theme findrandom return : " + JSON.stringify(themes));
+        console.log("theme findrandom returned : " + JSON.stringify(themes));
 
         for (i = 0; i < game.numberOfRounds; i++) {
             tempRound = new Round();
             tempRound.roundNumber = i+1;
             tempRound.judge = game.players[i % numPlayers];
             tempRound.themes = [];
+            tempRound.state = states.roundStates.NOT_STARTED;
 
             for (var j = 0; j < numThemeChoices; j++) {
                 // this looks kind of funky.
                 var ndx = ((i * numThemeChoices) % numThemes);
-                var themeToAdd = themes[ndx + j]._id;
+                var themeToAdd = themes[ndx + j];
+                if (themeToAdd){
+                    var themeToAddID = themes[ndx + j]._id;
 
-                console.log("Adding theme %s to round %s", themeToAdd, tempRound._id);
-                tempRound.themes.push(themeToAdd);
+                    console.log("Adding theme %s to round %s", themeToAdd.phrase, tempRound.roundNumber);
+                    tempRound.themes.push(themeToAdd);
+                } else {
+                    console.log("attempted to add empty theme to round.");
+                }
+
             }
 
             r.push(tempRound);
@@ -105,10 +112,10 @@ exports.create = function(req, res, next) {
                 return user.saveAsync();
             }).then(function(_user) {
                 console.log("Saved new game.");
-                res.json(game);
+                return res.json(game);
             }).catch(function(err) {
                 console.log(err, "Error creating new game");
-                res.status(500).send(err);
+                return res.status(500).send(err);
             });
 
     });
@@ -197,6 +204,9 @@ exports.list = function(req, res, next){
             return res.status(500).send(err, "Error returning games");
         })
     } else {
+
+        // TODO: No need to send deep populated Games. Only need game Id, game name, theme, player names. Will
+        // need a caching mechanism.
         user.deepPopulate('games.rounds.themes', 'games.players', function (err, _user) {
             if (err) {
                 console.log("Error populating populated Game objects.", err);
@@ -313,9 +323,26 @@ exports.acceptInvite = function(req, res, next) {
     // userdigestId does not exist in playersJoined.
     if (ndx < 0) {
         console.log("Adding user %s to playersJoined list.", user.username);
+
         game.playersJoined.push(user.userDigest);
         if (game.playersJoined.length == game.players.length) {
-            game.state = GameStates.STARTED;
+            game.state = states.gameStates.STARTED;
+
+            console.log("updating round state: " + game.rounds[0]);
+            Round.findByIdAsync(game.rounds[0])
+                .then(function(round) {
+                    console.log("Updating 1st round state");
+                    if (round.selectedTheme){
+                        round.state = states.roundStates.PLAYING;
+                    } else {
+                        round.state = states.roundStates.NO_THEME;
+                    }
+                    return round.saveAsync()
+                }).then(function(_round){
+                    console.log("Updated 1st round to " + _round.state);
+                }).catch(function(err){
+                    console.log("Error updating 1st round state");
+                });
 
             // TODO: an event will need to be fired. Clients need to get notified.
         }
@@ -332,7 +359,7 @@ exports.acceptInvite = function(req, res, next) {
 
             res.json(game);
         }).catch(function(err){
-            res.status(500).send("Error marking game as active." + err);
+            res.status(500).send("Error marking game as active. " + err);
         });
 };
 
