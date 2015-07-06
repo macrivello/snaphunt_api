@@ -113,7 +113,7 @@ exports.selectTheme  = function(req, res, next) {
 
     round.saveAsync().then(function (_round) {
         console.log("Round Active. Set round: '%s' to selectedTheme: '%s'", round._id, theme._id);
-        return res.json(_round);
+        return res.json(_round[0]);
     }).catch(function(err){
         return res.status(500).send("Unable to set selected theme for round.", err);
     });
