@@ -6,9 +6,9 @@ var Promise = require('bluebird');
 var mongoose = Promise.promisifyAll(require('mongoose')),
     UserDigest = require('mongoose').model('UserDigest'),
     deepPopulate = require('mongoose-deep-populate'),
-    bcrypt = Promise.promisifyAll(require('bcrypt')),
-	Schema = mongoose.Schema,
-    SALT_WORK_FACTOR = 10; // This was completely arbitrary
+    crypto = require('crypto');
+
+Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
     email: {
@@ -31,6 +31,7 @@ var UserSchema = new Schema({
     gcmRegId: String, //This will need to be an array if users have multiple devices
     profilePhoto: { type : Schema.ObjectId, ref: 'Photo' },
 	password: String,
+    salt: String,
 	provider: String,
 	providerId: String,
 	providerData: {},
@@ -84,7 +85,18 @@ UserSchema.post =('remove', function(doc) {
 });
 
 UserSchema.methods.authenticate = function(password, cb) {
-    return bcrypt.compareSync(password, this.password);
+    return this.hashPassword(password, this.salt) == password;
+};
+
+UserSchema.statics.generateSalt = function() {
+    return crypto.randomBytes(16).toString('base64');
+};
+
+UserSchema.statics.hashPassword = function (password, salt) {
+    // We use pbkdf2 to hash and iterate 10k times by default
+    var iterations = 10000,
+        keyLen = 64; // 64 bit.
+    return crypto.pbkdf2Sync(password, salt, iterations, keyLen);
 };
 
 UserSchema.statics.findUniqueUsername = function(username, suffix, callback) {

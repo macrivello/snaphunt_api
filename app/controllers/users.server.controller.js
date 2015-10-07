@@ -8,7 +8,6 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     passport = require('passport'),
     auth = require('./auth.server.controller.js'),
     gcm = require('./gcm.server.controller.js'),
-    bcrypt = Promise.promisifyAll(require('bcrypt')),
     event = require('events'),
     Events = require('../events/events.server'),
     eventEmitter = new event.EventEmitter();
@@ -155,8 +154,8 @@ function saveUsers(users, res, next) {
 
         // TODO: add gcm token
         user.provider = 'local';
-        var salt = bcrypt.genSaltSync(10);
-        user.password = bcrypt.hashSync(user.password, salt);
+        user.salt = User.generateSalt();
+        user.password = User.hashPassword(user.password, user.salt);
 
         // Create UserDigest
         var ud = new UserDigest();

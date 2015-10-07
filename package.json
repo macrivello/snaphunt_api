@@ -22,7 +22,6 @@
   "homepage": "https://github.com/macrivello/snaphunt_api/",
   "dependencies": {
     "aws-sdk": "^2.1.30",
-    "bcrypt": "^0.8.1",
     "bluebird": "^2.9.25",
     "body-parser": "^1.10.1",
     "connect-flash": "^0.1.1",
