@@ -106,13 +106,27 @@ exports.selectWinner = function (req, res, next) {
 
     console.log("updating round with winning photo");
     round.winningPhoto = photo._id;
-    round.winner = user.userDigest;
+    round.winner = photo.owner;
     round.state = states.roundStates.ENDED;
+
+
+    // TODO: Update game.currentRound.
+    //game.currentRound++;
+    // TODO: Emit event that round is over.
+
+    // Check if final round
+    if (game.currentRound == game.rounds.length) {
+        // TODO: Emit event that game is over.
+        game.state = states.gameStates.ENDED;
+    }
 
     round.saveAsync()
         .then(function(_round){
             console.log("Updated round");
-            return res.send("Selected winning photo.");
+            return game.saveAsync();
+        }).then(function(_game){
+            console.log("updated game");
+            return res.json(round);
         }).catch(function(err){
             console.log("Error updating round");
             return res.status(500).send("Error selecting winning photo. " + err);
