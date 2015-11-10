@@ -229,6 +229,7 @@ exports.login = function(req, res, next) {
     // TODO: validate input
 
     User.findOneAsync({username : username}).then(function(user) {
+        console.log("found user : " + username);
         if (user.authenticate(password)) {
             console.log("Updating authtoken for user: " + user.username);
 
@@ -242,9 +243,11 @@ exports.login = function(req, res, next) {
                 res.json(user);
             });
         } else {
+            console.log("Password check failed");
             res.send(401, "Invalid password");
         }
     }).catch(function(e) {
+        console.log(e);
         res.send(401, "Error finding user: "+ username);
     });
 };

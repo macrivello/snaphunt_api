@@ -84,8 +84,9 @@ UserSchema.post =('remove', function(doc) {
     }
 });
 
-UserSchema.methods.authenticate = function(password, cb) {
-    return this.hashPassword(password, this.salt) == password;
+UserSchema.methods.authenticate = function(password) {
+    console.log("Checking password : " + this.password);
+    return UserSchema.statics.hashPassword(password, this.salt) == this.password;
 };
 
 UserSchema.statics.generateSalt = function() {
