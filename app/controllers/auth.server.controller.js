@@ -44,6 +44,7 @@ exports.checkAuthToken = function (req, res, next) {
     }
 
     if (token) {
+        console.log("token: " + token);
         try {
             var decoded = jwt.decode(token, config.jwtTokenSecret);
             console.log('decoded token: ' + JSON.stringify(decoded));

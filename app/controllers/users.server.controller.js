@@ -131,7 +131,17 @@ exports.register = function(req, res, next) {
             users.push(new User(req.body));
         }
 
-        saveUsers(users, res, next);
+        //TODO: Only allow 1 user to be registered at a time.
+        // This will return an Array, Return only 1st in array for now. This function will be refactored
+        // to only allow one user to be registered.
+        exports.saveUsers(users).then(function(_users) {
+            var user = _users[0];
+
+            res.json(user);
+        }).catch(function(err){
+            console.log("Error registering user. " + err);
+            res.status(500).send("Error registering user. " + err);
+        });
 
     } else {
         console.log("No user in request body");
@@ -139,52 +149,70 @@ exports.register = function(req, res, next) {
     }
 };
 
-function saveUsers(users, res, next) {
-// TODO: add validation check on token
-    var updatedUsers = [];
-    var userDigests = [];
+exports.saveUsers = function(_users) {
+    return new Promise(function(resolve, reject) {
+        // TODO: add validation check on token
+        var updatedUsers = [];
+        var userDigests = [];
 
-    for (var i = 0; i < users.length; i++) {
-        var user = users[i];
-        var token = auth.generateAuthToken(user);
+        for (var i = 0; i < _users.length; i++) {
+            var user = _users[i];
+            var token = auth.generateAuthToken(user);
 
-        if (token) {
-            user.authToken = token;
+            if (token) {
+                user.authToken = token;
+            }
+
+            // TODO: add gcm token
+            user.provider = 'local';
+            user.salt = User.generateSalt();
+            user.password = User.hashPassword(user.password, user.salt);
+
+            // Create UserDigest
+            var ud = new UserDigest();
+            ud.username = user.username;
+            ud.profilePhoto = user.profilePhoto;
+            ud.userId = user._id;
+
+            console.log("Setting userdigest: '%s' to user: '%s'", ud._id,  user._id);
+            user.userDigest = ud._id;
+
+            userDigests.push(ud);
+            updatedUsers.push(user);
         }
 
-        // TODO: add gcm token
-        user.provider = 'local';
-        user.salt = User.generateSalt();
-        user.password = User.hashPassword(user.password, user.salt);
+        UserDigest.createAsync(userDigests)
+            .then(function(userDigestsCreated) {
+                return User.createAsync(updatedUsers)
+            }).then(function (usersCreated) {
+            for (var i = 0; i < usersCreated.length; i++) {
+                var user = usersCreated[i];
+                console.log("Successfully registered user: " + user.username);
+            }
 
-        // Create UserDigest
-        var ud = new UserDigest();
-        ud.username = user.username;
-        ud.profilePhoto = user.profilePhoto;
-        ud.userId = user._id;
+            resolve(usersCreated);
+        }).catch(function (err) {
+            reject(err);
+        });
+    });
 
-        console.log("Setting userdigest: '%s' to user: '%s'", ud._id,  user._id);
-        user.userDigest = ud._id;
+};
 
-        userDigests.push(ud);
-        updatedUsers.push(user);
-    }
-
+function createUserDigests(userDigests, callback) {
     UserDigest.createAsync(userDigests)
         .then(function(userDigestsCreated) {
             return User.createAsync(updatedUsers)
         }).then(function (usersCreated) {
-            for (var i = 0; i < usersCreated.length; i++) {
-                var user = usersCreated[i];
+        for (var i = 0; i < usersCreated.length; i++) {
+            var user = usersCreated[i];
+            //console.log("Successfully registered user: " + user.username);
+        }
 
-                console.log("Successfully registered user: " + user.username);
-            }
-
-            res.json(user);
-        }).catch(function (err) {
-            console.error('Error: ' + err);
-            res.status(500).send("Error registering user. " + err);
-        });
+        res.json(user);
+    }).catch(function (err) {
+        console.error('Error: ' + err);
+        callback(err);
+    });
 }
 
 exports.login = function(req, res, next) {

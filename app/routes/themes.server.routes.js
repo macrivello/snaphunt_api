@@ -16,7 +16,7 @@ module.exports = function(app, _router) {
         .get(themes.readTheme)
         .post(themes.selectTheme);
 
-    router.route('/themes/:themeId/like')
+    router.route('/THEMES/:themeId/like')
         .get(themes.like);
     router.route('/themes/:themeId/dislike')
         .get(themes.dislike);

@@ -134,50 +134,49 @@ exports.readTheme = function(req, res, next) {
 // Currently expecting an array of strings. Each string will be a new Theme's phrase
 exports.create = function(req, res, next) {
     console.log("Create theme");
+
     var phrases = req.body;
     console.log("phrases: " + JSON.stringify(phrases));
-    var themes = [];
-    var themeIds = [];
-    if (phrases instanceof Array){
-        for (var i = 0; i < phrases.length; i++){
-            var phrase = phrases[i];
-            console.log("Creating theme with phrase: " + phrase);
-            themes.push(new Theme({phrase: phrase}));
-            //console.log("theme: " + JSON.stringify(theme));
-            //Theme.saveAsync()
-            //    .then(function(_theme){
-            //        console.log("saved theme: " + JSON.stringify(_theme));
-            //
-            //        themeIds.push(_theme._id);
-            //    })
-            //    .catch(function (err) {
-            //        console.log("error saving theme. " + err);
-            //    });
-        }
-    } else {
-        // TODO: stuff like this is vulnerable. arbitrary string length.
-        if (phrases instanceof String) {
-            themes.push(new Theme({phrase: phrases}));
-            //theme.saveAsync()
-            //    .then(function(_theme){
-            //        themeIds.push(_theme._id);
-            //    })
-            //    .catch(function (err) {
-            //        console.log("error saving theme. " + err);
-            //    });
-        } else {
-            return res.status(401).send("Invalid body");
-        }
-    }
 
-    Theme.createAsync(themes)
-        .then(function(_themes) {
-            console.log("created %d themes.", _themes.length);
-            res.send("Created " + _themes.length + " themes.");
-        }).catch(function (err) {
+    exports.createThemes(phrases)
+        .then(function(themes){
+            console.log("created %d themes.", themes.length);
+            res.send("Created " + themes.length + " themes.");
+        }).catch(function(err){
             console.log("error saving themes. " + err);
             res.status(500).send("Error creating themes. " + err);
-        });
-
-
+    });
 };
+
+exports.createThemes = function(phrases){
+
+    return new Promise(function(resolve, reject){
+        if(!phrases){
+            reject("No phrases provided");
+        }
+
+        var themes = [];
+        var themeIds = [];
+
+        if (phrases instanceof Array){
+            for (var i = 0; i < phrases.length; i++){
+                var phrase = phrases[i];
+                themes.push(new Theme({phrase: phrase}));
+            }
+        } else {
+            // TODO: stuff like this is vulnerable. arbitrary string length.
+            if (phrases instanceof String) {
+                themes.push(new Theme({phrase: phrases}));
+            } else {
+                reject("Invalid String");
+            }
+        }
+
+        Theme.createAsync(themes)
+            .then(function(_themes) {
+                resolve(_themes);
+            });
+        });
+};
+
+

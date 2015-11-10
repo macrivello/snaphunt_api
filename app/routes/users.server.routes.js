@@ -3,7 +3,7 @@ var users = require('../../app/controllers/users.server.controller.js');
 module.exports = function(router) {
     router.route('/users')
         .get(users.list) // ADMIN
-        .delete(users.deleteAll);
+        .delete(users.deleteAll)
 
     router.route('/users/:userId')
         .get(users.read)
@@ -14,7 +14,7 @@ module.exports = function(router) {
         .put(users.updateProfilePhoto);
 
     router.route('/register')
-		.post(users.register);
+        .post(users.register);
 
     router.route('/login')
         .post(users.login);
@@ -25,7 +25,7 @@ module.exports = function(router) {
     // TESTING PUSHING TO USERID
     router.route('/push/:userId').get(users.sendGcmMessage);
 
-    // TODO: Revisit. What do I need to do on logout?
+    // TODO: Revisit. What DO I need to do on logout?
     router.get('/logout', users.logout);
 
     /**

@@ -24,7 +24,6 @@ exports.create = function(req, res, next) {
 
     var user = req.user; // this should be valid since its an authenticated route
     var game = new Game(req.body);
-    game.state = states.gameStates.NOT_STARTED;
 
     var ids = req.query.id;
     if (ids){
@@ -46,83 +45,113 @@ exports.create = function(req, res, next) {
             game.players.push(new ObjectId(ids));
         }
     } else {
-        console.log("Invalid player IDs in query parameters.");
-        return res.status(401).send("Invalid player IDs in query parameters");
+        return res.status(401).send("Invalid player IDs in query parameters.");
     }
 
-    var i, r = [];
-    // TODO: don't make numThemeChoices hardcoded
-    var numThemeChoices = 3;
-    var tempRound, numPlayers = game.players.length, numRounds = game.numberOfRounds;
-
-    Theme.findRandom().limit(numRounds * numThemeChoices).exec(function (err, themes) {
-        if (err) {
-            console.log(err, "Error creating new game - theme population");
-            return res.status(500).send(err);
-        }
-
-        var numThemes = themes.length ? themes.length : 0;
-        console.log("theme findrandom returned : " + JSON.stringify(themes));
-
-        for (i = 0; i < game.numberOfRounds; i++) {
-            tempRound = new Round();
-            tempRound.roundNumber = i+1;
-            tempRound.judge = game.players[i % numPlayers];
-            tempRound.themes = [];
-            tempRound.state = states.roundStates.NOT_STARTED;
-
-            for (var j = 0; j < numThemeChoices; j++) {
-                // this looks kind of funky.
-                var ndx = ((i * numThemeChoices) % numThemes);
-                var themeToAdd = themes[ndx + j];
-                if (themeToAdd){
-                    var themeToAddID = themes[ndx + j]._id;
-
-                    console.log("Adding theme %s to round %s", themeToAdd.phrase, tempRound.roundNumber);
-                    tempRound.themes.push(themeToAdd);
-                } else {
-                    console.log("attempted to add empty theme to round.");
-                }
-
-            }
-
-            r.push(tempRound);
-        }
-
-        Round.createAsync(r)
-            .then(function(roundsCreated) {
-                var roundIds = [];
-                var numRounds = roundsCreated.length;
-                console.log("%d rounds created.", numRounds);
-                for (i = 0; i < numRounds; i++) {
-                    roundIds.push(roundsCreated[i]._id);
-                }
-                game.rounds = roundIds;
-
-                return game.saveAsync();
-            }).then(function(gameSaved){
-                game = gameSaved[0];
-                console.log("User: " + user.username);
-                console.log("New Game created. Game: " + game.gameName);
-
-                process.emit(Events.gameCreated, { "usernameOfCreator" : user.username , "userDigestIdOfCreator" : user.userDigest, "game" : game});
-
-                user.games.push(game._id);
-
-                return user.saveAsync();
-            }).then(function(_user) {
-                console.log("Saved new game.");
-                return res.json(game);
-            }).catch(function(err) {
-                console.log(err, "Error creating new game");
-                return res.status(500).send(err);
-            });
-
+    exports.createGame(game, user)
+        .then(function(game) {
+            console.log("Created game " + game._id);
+            res.json(game);
+        }).catch(function(err){
+            console.log("Error creating game: " + err);
+            res.status(500).send("Error creating game : " + err);
     });
 
-    // TODO: add a GameOptions model for Users that would include number of themes to choose from
-    // TODO: currently just using same three themes for each round
 };
+
+
+/**
+ * This will init a Game with Rounds and save to DB.
+ * @param game
+ * @param userDigest
+ * @returns Promise
+ */
+exports.createGame = function(game, user){
+    return new Promise(function (resolve, reject) {
+        // TODO more thorough validation of user and game. check type
+        if (!game || !user) {
+            reject("Null game");
+        }
+
+        game.state = states.gameStates.NOT_STARTED;
+
+        var i, r = [];
+
+        // TODO: don't make numThemeChoices hardcoded
+        var numThemeChoices = 3;
+        var tempRound, numPlayers = game.players.length, numRounds = game.numberOfRounds;
+
+        Theme.findRandom().limit(numRounds * numThemeChoices).exec(function (err, themes) {
+            if (err) {
+                console.log(err, "Error creating new game - theme population");
+                return reject(err);
+            }
+
+            var numThemes = themes.length ? themes.length : 0;
+            console.log("theme findrandom returned : " + JSON.stringify(themes));
+
+            for (i = 0; i < game.numberOfRounds; i++) {
+                tempRound = new Round();
+                tempRound.roundNumber = i+1;
+                tempRound.judge = game.players[i % numPlayers];
+                tempRound.themes = [];
+                tempRound.state = states.roundStates.NOT_STARTED;
+
+                for (var j = 0; j < numThemeChoices; j++) {
+                    // this looks kind of funky.
+                    var ndx = ((i * numThemeChoices) % numThemes);
+                    var themeToAdd = themes[ndx + j];
+                    if (themeToAdd){
+                        var themeToAddID = themes[ndx + j]._id;
+
+                        console.log("Adding theme %s to round %s", themeToAdd.phrase, tempRound.roundNumber);
+                        tempRound.themes.push(themeToAdd);
+                    } else {
+                        console.log("attempted to add empty theme to round.");
+                    }
+
+                }
+
+                r.push(tempRound);
+            }
+
+            // Create rounds for Game
+            Round.createAsync(r)
+                .then(function(roundsCreated) {
+                    var roundIds = [];
+                    var numRounds = roundsCreated.length;
+                    console.log("%d rounds created.", numRounds);
+                    for (i = 0; i < numRounds; i++) {
+                        roundIds.push(roundsCreated[i]._id);
+                    }
+                    game.rounds = roundIds;
+
+                    return game.saveAsync();
+                }).then(function(gameSaved){
+                    game = gameSaved[0];
+                    console.log("User: " + user.username);
+                    console.log("New Game created. Game: " + game.gameName);
+
+                    process.emit(Events.gameCreated, { "usernameOfCreator" : user.username , "userDigestIdOfCreator" : user.userDigest, "game" : game});
+
+                    user.games.push(game._id);
+
+                    return user.saveAsync();
+
+                }).then(function(_user) {
+                    console.log("Saved new game.");
+
+                    resolve(game);
+                }).catch(function(err) {
+                    console.log(err, "Error creating new game");
+
+                    reject(err);
+                });
+        });
+    });
+
+};
+
 
 // Add Game object with id 'gameId' to request object field, req.game
 exports.getGame = function (req, res, next, gameId){
