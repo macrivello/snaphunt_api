@@ -17,7 +17,7 @@ module.exports = function(router) {
         .post(users.register);
 
     router.route('/login')
-        .post(users.login);
+        .get(users.login);
 
     router.param('userId', users.getUser);
 
