@@ -7,9 +7,9 @@ var User = Promise.promisifyAll(require('mongoose').model('User')),
 var gcmSender = new gcm.Sender(config.gcmApiKey);
 var _this = this;
 
-exports.sendGcmMessageToGcmID = function (req, res, next, ids) {
+exports.sendGcmMessageToGcmID = function (req, res, next) {
     console.log("sendGcmMessageToGcmID");
-    var ids = (ids != null) ? ids : req.headers[config.gcmHeader];
+    var ids = req.headers[config.gcmHeader];
 
     if (!ids) {
         res.status(401).send("Invalid GCM REQ ID");

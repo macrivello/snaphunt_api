@@ -1,9 +1,7 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    UserDigestController = require('./userdigest.server.controller.js'),
     User = require('mongoose').model('User'),
-    UserDigest = require('mongoose').model('UserDigest'),
     Photo = require('mongoose').model('Photo'),
     passport = require('passport'),
     auth = require('./auth.server.controller.js'),
@@ -20,39 +18,31 @@ function onNewGameCreated (data) {
     var game = data.game;
     var gameId = data.game._id;
     var usernameOfCreator = data.usernameOfCreator;
-    var userDigestIdOfCreator = data.userDigestIdOfCreator;
-    //console.log("game: " + JSON.stringify(game));
+    var userIdOfCreator = data.userIdOfCreator;
+
     console.log("gameId: " + gameId);
     console.log("usernameOfCreator: " + usernameOfCreator);
-    console.log("userDigestIdOfCreator: " + userDigestIdOfCreator);
+    console.log("userIdOfCreator: " + userIdOfCreator);
 
-    var userDigestIds = [];
+    var userIds = [];
     for (var i = 0; i < game.players.length; i++) {
         var userId = game.players[i];
-        if (userId != userDigestIdOfCreator) {
-            userDigestIds.push(userId);
+        if (userId != userIdOfCreator) {
+            userIds.push(userId);
         }
     }
 
     // TODO: Need a more efficient way to update game as invite
-    UserDigest.findAsync({'_id': { $in: userDigestIds}})
-        .then(function(userDigests) {
-            //console.log("need to send invitations to these userdigest ids: " + userDigests);
-
-            var userIds = [];
-            for (var i = 0; i < userDigests.length; i++) {
-                userIds.push(userDigests[i].userId);
-            }
-
-            return User.findAsync({_id: { $in: userIds}});
-            //return User.update({_id: { $in: userIds}}, {$addToSet: {'invitations': gameId}});
-        }).then(function (users){
+    User.findAsync({'_id': { $in: userIds}})
+        .then(function (users){
             for (var i = 0; i < users.length; i++){
                 var user = users[i];
                 console.log("Adding game invite %s to user %s", gameId, user.username);
                 user.invitations.push(gameId);
                 user.save();
             }
+
+            // TODO: Emit event for new invites
             // add game to invite for all users.
             //console.log("Updated users with game invite");
 
@@ -65,11 +55,8 @@ function onNewGameCreated (data) {
 function onThemeSelected (data) {
     console.log("onThemeSelected");
     var game = data.game;
-    var userDigestIdOfCreator = data.userDigestIdOfCreator;
+    var userIdOfCreator = data.userIdOfCreator;
 }
-
-var SALT_WORK_FACTOR = 10; // This was completely arbitrary
-
 
 // Get a String from Mongo error code.
 var getErrorMessage = function(err) {
@@ -117,31 +104,55 @@ exports.getUser = function(req, res, next, id) {
 // TODO: Input validation with appropriate error codes.
 exports.register = function(req, res, next) {
 	if (req.body) {
-        var users = [];
+        var user, users = [];
 
         console.log("Registering users.");
         if (req.body instanceof Array){
 
+
             for (var i = 0; i < req.body.length; i++) {
                 console.log("Adding user to list: " + JSON.stringify(req.body[i]));
-                users.push(new User(req.body[i]));
+
+
+                user = new User(req.body[i]);
+                users.push(user);
             }
         } else {
             console.log("Adding user to list: " + JSON.stringify(req.body));
-            users.push(new User(req.body));
+            user = new User(req.body);
+            users.push(user);
+
+            var token = auth.generateAuthToken(user);
+
+            if (token) {
+                user.authToken = token;
+            }
+
+            // TODO: add gcm token
+            user.provider = 'local';
+            user.salt = User.generateSalt();
+            user.password = User.hashPassword(user.password, user.salt);
+
+            User.createAsync(user).then(function (userCreated) {
+                console.log("Successfully registered user: " + userCreated.username);
+                res.json(user);
+            }).catch(function (err) {
+                console.log("Error registering user. " + err);
+                res.status(500).send("Error registering user. " + err);
+            });
         }
 
         //TODO: Only allow 1 user to be registered at a time.
         // This will return an Array, Return only 1st in array for now. This function will be refactored
         // to only allow one user to be registered.
-        exports.saveUsers(users).then(function(_users) {
-            var user = _users[0];
-
-            res.json(user);
-        }).catch(function(err){
-            console.log("Error registering user. " + err);
-            res.status(500).send("Error registering user. " + err);
-        });
+        //exports.saveUsers(users).then(function(_users) {
+        //    var user = _users[0];
+        //
+        //    res.json(user);
+        //}).catch(function(err){
+        //    console.log("Error registering user. " + err);
+        //    res.status(500).send("Error registering user. " + err);
+        //});
 
     } else {
         console.log("No user in request body");
@@ -152,8 +163,8 @@ exports.register = function(req, res, next) {
 exports.saveUsers = function(_users) {
     return new Promise(function(resolve, reject) {
         // TODO: add validation check on token
-        var updatedUsers = [];
-        var userDigests = [];
+        var _this = this;
+        var users = [];
 
         for (var i = 0; i < _users.length; i++) {
             var user = _users[i];
@@ -168,68 +179,39 @@ exports.saveUsers = function(_users) {
             user.salt = User.generateSalt();
             user.password = User.hashPassword(user.password, user.salt);
 
-            // Create UserDigest
-            var ud = new UserDigest();
-            ud.username = user.username;
-            ud.profilePhoto = user.profilePhoto;
-            ud.userId = user._id;
-
-            console.log("Setting userdigest: '%s' to user: '%s'", ud._id,  user._id);
-            user.userDigest = ud._id;
-
-            userDigests.push(ud);
-            updatedUsers.push(user);
+            users.push(user);
         }
 
-        UserDigest.createAsync(userDigests)
-            .then(function(userDigestsCreated) {
-                return User.createAsync(updatedUsers)
+        User.createAsync(users)
             }).then(function (usersCreated) {
             for (var i = 0; i < usersCreated.length; i++) {
                 var user = usersCreated[i];
                 console.log("Successfully registered user: " + user.username);
             }
 
-            resolve(usersCreated);
+            _this.resolve(usersCreated);
         }).catch(function (err) {
-            reject(err);
+            _this.reject(err);
         });
-    });
-
 };
-
-function createUserDigests(userDigests, callback) {
-    UserDigest.createAsync(userDigests)
-        .then(function(userDigestsCreated) {
-            return User.createAsync(updatedUsers)
-        }).then(function (usersCreated) {
-        for (var i = 0; i < usersCreated.length; i++) {
-            var user = usersCreated[i];
-            //console.log("Successfully registered user: " + user.username);
-        }
-
-        res.json(user);
-    }).catch(function (err) {
-        console.error('Error: ' + err);
-        callback(err);
-    });
-}
 
 exports.login = function(req, res, next) {
     // TODO: Update last login, plus... (more?)
     //find user, call user.authenticate(req.param.password)
     var username = req.query.username;
     var password = req.query.password;
-    console.log("Login attempt - " + username + ":" + password);
+    console.log("Login attempt - " + username);
     if (!username || !password) {
-        res.send(401, "Username and password params required.");
+        res.status(401).send("Username and password params required.");
         return;
     }
 
     // TODO: validate input
 
-    User.findOneAsync({username : username}).then(function(user) {
-        console.log("found user : " + username);
+    User.findOne({username : username}).then(function(user) {
+
+
+        console.log("found user : " + user.username);
         if (user.authenticate(password)) {
             console.log("Updating authtoken for user: " + user.username);
 
@@ -244,11 +226,11 @@ exports.login = function(req, res, next) {
             });
         } else {
             console.log("Password check failed");
-            res.send(401, "Invalid password");
+            res.status(401).send("Invalid password");
         }
     }).catch(function(e) {
         console.log(e);
-        res.send(401, "Error finding user: "+ username);
+        res.status(401).send("Error finding user: "+ username);
     });
 };
 
@@ -269,15 +251,35 @@ exports.create = function(req, res, next) {
 	});
 };
 
+// TODO: Refactor
 exports.list = function(req, res, next) {
-	User.find({}, function(err, users) {
-		if (err) {
-			return next(err);
-		}
-		else {
-			res.json(users);
-		}
-	});
+    if (req.query.id){
+        var ids = [];
+
+        if (req.query.id instanceof Array){
+            ids = req.query.id;
+        } else {
+            ids.push(req.query.id);
+        }
+
+        User.find({ _id : { $in : ids}}, function(err, users) {
+            if (err) {
+                return next(err);
+            }
+            else {
+                res.json(users);
+            }
+        });
+    } else {
+        User.find({}, function(err, users) {
+            if (err) {
+                return next(err);
+            }
+            else {
+                res.json(users);
+            }
+        });
+    }
 };
 
 exports.read = function(req, res) {
@@ -326,7 +328,6 @@ exports.update = function(req, res, next) {
 };
 
 exports.delete = function(req, res, next) {
-    //TODO: Delete UserDigest doc too
     User.findByIdAndRemoveAsync(req.params.userId).then(function(user){
         console.log("user: " + user.username);
         var username = user.username;
@@ -352,8 +353,6 @@ exports.deleteAll = function(req, res, next) {
             return User.remove(users)
         }).then(function(deletedUsers) {
             console.log("Deleted all users, now deleting userdigests");
-            UserDigestController.delete(req, res, next);
-            //res.json(deletedUsers);
         }).catch(function(e){
             res.status(500).send("Error deleting users: " + e);
         });
@@ -381,11 +380,11 @@ function updateAuthToken(req, res, next, user) {
                     if (err) return next(err);
                 });
         } else {
-            res.send(500, "Error generating token.");
+            res.status(500).send("Error generating token.");
         }
     } else {
         console.log("Unable to update auth token. Invalid User");
-        res.send(500, "Unable to update auth token. Invalid User");
+        res.status(500).send("Unable to update auth token. Invalid User");
     }
 }
 
@@ -429,6 +428,13 @@ exports.saveOAuthUserProfile = function(req, profile, done) {
         };
 
 // TODO: Refactor. Verify photo?
+/**
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns {*} Url of new profile photo.
+ */
 exports.updateProfilePhoto = function (req, res, next) {
     console.log("update User ProfilePhoto");
     var user = req.user;
@@ -453,26 +459,19 @@ exports.updateProfilePhoto = function (req, res, next) {
             });
     }
 
-    var photoId;
+    var photo;
     userPhoto.saveAsync()
         .then(function(_photo) {
-            var photo = _photo[0];
-            photoId = photo._id;
-            user.profilePhoto = photoId;
+            photo = _photo[0];
+            user.profilePhoto = photo._id;
 
             return user.saveAsync();
         }).then(function(savedUser){
             user = savedUser[0];
 
-            return UserDigest.findAsync(user.userDigest);
-        }).then(function(userDigest) {
-            var ud = userDigest[0];
-            ud.profilePhoto = photoId;
-            return ud.saveAsync();
-        }).then(function(savedUserDigest){
             console.log("Successfully updated profile photo for user: '%s' ", user._id);
             console.log("updated user: " + JSON.stringify(user));
-            return res.json(savedUserDigest[0]);
+            return res.send(photo.url);
         }).catch(function(err){
             var msg = "Error updating profile photo for user: " + user._id;
             console.log(err, msg);

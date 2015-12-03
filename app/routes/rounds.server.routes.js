@@ -13,10 +13,6 @@ module.exports = function(app) {
         .get(rounds.listRounds)
         .delete(rounds.deleteAll);
 
-    // TODO: Add to Photo routes
-    //router.route('/rounds/:roundId/photo')
-    //    .post(photos.submitPhoto);
-
     // updates req object with req.round
     router.param('roundId', rounds.getRound);
 

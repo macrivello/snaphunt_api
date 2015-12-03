@@ -4,7 +4,6 @@
 var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose')),
-    UserDigest = require('mongoose').model('UserDigest'),
     deepPopulate = require('mongoose-deep-populate'),
     crypto = require('crypto');
 
@@ -24,7 +23,6 @@ var UserSchema = new Schema({
         type: String,
         index: true
     },
-    userDigest: { type: Schema.ObjectId, ref: 'UserDigest'},
     timeCreated: { type: Date, default: Date.now },
     timeLastModifed: { type: Date, default: Date.now },
     phoneNumber : String,
@@ -66,26 +64,10 @@ UserSchema.plugin(deepPopulate, null);
 //});
 
 UserSchema.post =('remove', function(doc) {
-    console.log('In User remove post hook');
-    var userId = doc._id;
-    var userDigestId = doc.userDigest;
-    if (userDigestId) {
-        UserDigest.findByIdAndRemove(userDigestId, function (err, userDigest) {
-            if (err) {
-                console.log("Error deleting UserDigest '%s' for user '%s'.", userDigestId, userId);
-                return next(err);
-            }
-
-            console.log("Deleted UserDigest '%s' for user '%s'.", userDigestId, userId);
-            return next();
-        });
-    } else {
-        console.log("Invalid UserDigest for user '%s'", userId);
-    }
+    console.log('Post remove: User');
 });
 
 UserSchema.methods.authenticate = function(password) {
-    console.log("Checking password : " + this.password);
     return UserSchema.statics.hashPassword(password, this.salt) == this.password;
 };
 

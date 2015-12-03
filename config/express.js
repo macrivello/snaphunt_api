@@ -37,10 +37,8 @@ module.exports = function() {
     app.set('jwtTokenSecret', config.jwtTokenSecret);
 
     // Register routes to router
-
     require('../app/routes/index.server.routes.js')(app);
     var userRoutes = require('../app/routes/users.server.routes.js')(router);
-    var userDigestRoutes = require('../app/routes/userdigest.server.routes.js')(router);
     var gameRoutes = require('../app/routes/games.server.routes.js')(router);
     var adminRoutes = require('../app/routes/admin.server.routes.js')(router);
 
@@ -55,18 +53,10 @@ module.exports = function() {
     roundRoutes.use('/rounds/:roundId', photoRoutes);
     roundRoutes.use('/rounds/:roundId', themeRoutes);
 
+    // Hook up authentication middleware (auth check)
     app.use('/api/v1', auth.checkAuthToken, router);
-    //router.use('/rounds/:roundId/', photoRoutes);
 
     app.use(express.static('./public'));
-
-    /*
-     TESTING ROUTEs
-     */
-    app.post('/test/gcm/push', function(req, res, next) {
-        // Push message to phone
-        gcm.sendGcmMessage(req, res, next, null);
-    });
 
 	return app;
 };

@@ -7,7 +7,7 @@
 var mongoose = require('mongoose'),
     deepPopulate = require('mongoose-deep-populate'),
     User = require('mongoose').model('User'),
-    UserDigest = require('mongoose').model('UserDigest'),
+    Round = require('mongoose').model('Round'),
     Schema = mongoose.Schema,
     events = require('events'),
     Events = require('../events/events.server'),
@@ -20,8 +20,8 @@ var GameSchema = new Schema({
     numberOfRounds: { type: Number, default: 10 }, // TODO: Should be points to win, right?
     currentRound: { type: Number, default: 1 },
     rounds: [{type: Schema.ObjectId, ref: 'Round'}],
-    players: [{type: Schema.ObjectId, ref: 'UserDigest'}],
-    playersJoined: [{type: Schema.ObjectId, ref: 'UserDigest'}],
+    players: [{type: Schema.ObjectId, ref: 'User'}],
+    playersJoined: [{type: Schema.ObjectId, ref: 'User'}],
     timeCreated: { type: Date, default: Date.now },
     timeLastModified: { type: Date, default: Date.now },
     timeEnded: Date,
@@ -52,21 +52,21 @@ GameSchema.pre('save',
 );
 
 // TODO: Make this leaner. this will be a heavy operation.
+
+// This is an automatically called function when a Game document is removed
+// from MongoDB. This removes the game for all users who were invited or playing the game.
+
+// This will also remove all rounds that were apart of the game.
 GameSchema.post('remove', function (doc) {
     // Remove references
     var game = doc;
     console.log("Game post remove. Removed game: " + game._id);
     for (var i = 0; i < game.players.length; i++){
-        var userDigestId = game.players[i];
-        console.log("Removing games and invites for userDigestID: " + userDigestId);
-        // grab userdigest, get users, then update games and invitations
-        UserDigest.find(userDigestId)
-            .then(function(_userDigest){
-                var userId = _userDigest.userId;
+        var userId = game.players[i];
+        console.log("Removing games and invites for userID: " + userId);
 
-                console.log("Found userId from digest: " + userId);
-                return User.find(userId);
-            }).then(function(user){
+        // grab user, then update games and invitations
+            User.find(userId).then(function(user){
                 console.log("Found User from id: " + user.username);
 
                 console.log(" - looking for game: " + game._id);
@@ -97,6 +97,12 @@ GameSchema.post('remove', function (doc) {
     }
 
     //TODO: Remove Rounds
+    Round.remove({ _id : { $in: game.rounds } }).then(function (roundsRemoved) {
+        console.log("Remove rounds : " + JSON.stringify(roundsRemoved));
+    }).catch(function (err) {
+        console.log("Error removing Rounds for game: " + game._id);
+    })
+
 });
 
 mongoose.model('Game', GameSchema);

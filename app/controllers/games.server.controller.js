@@ -5,7 +5,6 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
     Round = require('mongoose').model('Round'),
     Photo = require('mongoose').model('Photo'),
     User = require('mongoose').model('User'),
-    UserDigest = require('mongoose').model('UserDigest'),
     Theme = require('mongoose').model('Theme'),
     event = require('events'),
     ObjectId = require('mongoose').Types.ObjectId,
@@ -29,11 +28,10 @@ exports.create = function(req, res, next) {
     if (ids){
         // Add creator of game to first position in list, this
         //  helps when setting users as judge
-        console.log("Adding creator to game players: " + user.userDigest);
-        game.players.push(user.userDigest);
+        game.players.push(user._id);
 
         // Add to creator as joined player
-        game.playersJoined.push(user.userDigest);
+        game.playersJoined.push(user._id);
 
         if (ids instanceof Array){
             for (var i = 0; i < ids.length; i++) {
@@ -63,7 +61,7 @@ exports.create = function(req, res, next) {
 /**
  * This will init a Game with Rounds and save to DB.
  * @param game
- * @param userDigest
+ * @param user
  * @returns Promise
  */
 exports.createGame = function(game, user){
@@ -88,7 +86,6 @@ exports.createGame = function(game, user){
             }
 
             var numThemes = themes.length ? themes.length : 0;
-            console.log("theme findrandom returned : " + JSON.stringify(themes));
 
             for (i = 0; i < game.numberOfRounds; i++) {
                 tempRound = new Round();
@@ -98,13 +95,12 @@ exports.createGame = function(game, user){
                 tempRound.state = states.roundStates.NOT_STARTED;
 
                 for (var j = 0; j < numThemeChoices; j++) {
+
                     // this looks kind of funky.
                     var ndx = ((i * numThemeChoices) % numThemes);
                     var themeToAdd = themes[ndx + j];
                     if (themeToAdd){
                         var themeToAddID = themes[ndx + j]._id;
-
-                        console.log("Adding theme %s to round %s", themeToAdd.phrase, tempRound.roundNumber);
                         tempRound.themes.push(themeToAdd);
                     } else {
                         console.log("attempted to add empty theme to round.");
@@ -129,10 +125,9 @@ exports.createGame = function(game, user){
                     return game.saveAsync();
                 }).then(function(gameSaved){
                     game = gameSaved[0];
-                    console.log("User: " + user.username);
-                    console.log("New Game created. Game: " + game.gameName);
+                    console.log("New Game created by : %s. GameName: %s", user.username, game.gameName);
 
-                    process.emit(Events.gameCreated, { "usernameOfCreator" : user.username , "userDigestIdOfCreator" : user.userDigest, "game" : game});
+                    process.emit(Events.gameCreated, { "usernameOfCreator" : user.username , "userIdOfCreator" : user._id, "game" : game});
 
                     user.games.push(game._id);
 
@@ -259,7 +254,6 @@ exports.deleteAll = function(req, res, next) {
     Game.find(gameIds)
         .then(function(games) {
             // Calling Game.remove(games) was not executing middleware hook
-            console.log("Deleting games: " + JSON.stringify(games));
             var removedGames = [];
             for (var i = 0; i < games.length; i++) {
                 var game = games[i];
@@ -348,12 +342,13 @@ exports.acceptInvite = function(req, res, next) {
     }
 
     // mark player as joined, add to game.playersJoined
-    var ndx = game.playersJoined.indexOf(user.userdigest);
-    // userdigestId does not exist in playersJoined.
+    var ndx = game.playersJoined.indexOf(user._id);
+
     if (ndx < 0) {
+        // userId does not exist in playersJoined.
         console.log("Adding user %s to playersJoined list.", user.username);
 
-        game.playersJoined.push(user.userDigest);
+        game.playersJoined.push(user._id);
         if (game.playersJoined.length == game.players.length) {
             game.state = states.gameStates.STARTED;
 

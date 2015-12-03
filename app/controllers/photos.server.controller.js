@@ -29,13 +29,13 @@ exports.submitPhoto = function (req, res, next) {
     }
 
     var photo = new Photo(req.body);
-    photo.owner = user.userDigest;
+    photo.owner = user._id;
     photo.theme = round.selectedTheme;
 
     photo.saveAsync()
         .then(function(_photo){
             console.log("Saved submitted photo: " + JSON.stringify(_photo[0]));
-            console.log("Adding photo to rounds.photo. UD: " + user.userDigest);
+            console.log("Adding photo to rounds.photo. User: " + user.username);
             round.photos.push(_photo[0]._id);
 
             // Check if this is the final photo to be submitted for the round.
@@ -136,35 +136,35 @@ exports.selectWinner = function (req, res, next) {
 };
 
 
-exports.getPhotoFromUserDigestId = function (req, res, next) {
-    console.log("getPhotoFromUserDigestId");
+exports.getPhotoFromUserId = function (req, res, next) {
+    console.log("getPhotoFromUserId");
     var user = req.user;
     var game = req.game;
     var round = req.round;
 
     // TODO: pass through url path
-    var userDigestId = req.query.udid;
+    var userId = req.query.uid;
 
     // TODO: Make more specific.
     if (!user || !game || !round) {
         return res.status(500).send("Unable to read photo.");
     }
 
-    console.log("Looking up submitted photo of: " + userDigestId);
+    console.log("Looking up submitted photo of: " + userId);
     Photo.find(round.photos)
         .then(function(photos){
             //console.log("looking through photos: " + photos);
             for (var i = 0; i < photos.length; i++) {
                 var photo = photos[i];
-                if (photo.owner == userDigestId){
-                    console.log("Found round photo submitted by UD: " + userDigestId);
+                if (photo.owner == userId){
+                    console.log("Found round photo submitted by UD: " + userId);
                     return res.json(photo);
                 }
             }
-            return res.status(401).send("No round photo found for userdigest " + userDigestId);
+            return res.status(401).send("No round photo found for userId " + userId);
         }).catch(function (err) {
-            console.log("Error finding photo by userdigest " + userDigestId + ". " + err);
-             return res.status(500).send("Error finding photo by userdigest " + userDigestId + ". " + err);
+            console.log("Error finding photo by user " + userId + ". " + err);
+             return res.status(500).send("Error finding photo by userId " + userId + ". " + err);
         });
 };
 

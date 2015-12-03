@@ -7,7 +7,7 @@ module.exports = function(app, _router) {
 
     // game/{id}/round/{id}/photo...
     router.route('/photo')
-        .get(photos.getPhotoFromUserDigestId)
+        .get(photos.getPhotoFromUserId)
         .post(photos.submitPhoto);
 
     // This route will not sit on /game routes

@@ -6,7 +6,6 @@ var Game = require('mongoose').model('Game'),
     User = require('mongoose').model('User');
 
 var models = [require('mongoose').model('User'),
-    require('mongoose').model('UserDigest'),
     require('mongoose').model('Game'),
     require('mongoose').model('Round'),
     require('mongoose').model('Photo'),
@@ -37,7 +36,7 @@ function resetDB() {
                 var model = models[i];
                 console.log("Removing all : " + model.modelName);
 
-                promiseArr.push(model.remove({}))
+                promiseArr.push(model.remove({}));
 
                     //.then(function(_model) {
                     //    console.log("Removed all instances of " + _model);

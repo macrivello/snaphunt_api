@@ -95,7 +95,7 @@ exports.selectTheme  = function(req, res, next) {
     console.log("Select Theme: " + JSON.stringify(theme));
 
     // TODO: add verification on themeId
-    if (round.judge.toString() != user.userDigest.toString()) {
+    if (round.judge.toString() != user._id.toString()) {
         console.log("User selecting theme for round is not judge. judge: '%s' user: '%s'",
             round.judge, user._id);
 
@@ -119,7 +119,7 @@ exports.selectTheme  = function(req, res, next) {
     });
 
     //TODO: fire event that round has been started. do something with this!!
-    process.emit(Events.themeSelected, {"userDigestIdOfCreator" : user.userdigest, "game" : game} );
+    process.emit(Events.themeSelected, {"userIdOfCreator" : user._id, "game" : game} );
 };
 
 exports.readTheme = function(req, res, next) {

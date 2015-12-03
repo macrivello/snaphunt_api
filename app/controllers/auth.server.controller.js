@@ -2,7 +2,6 @@ var Promise = require('bluebird');
 
 var mongoose = Promise.promisifyAll(require('mongoose'),
     User = require('mongoose').model('User')),
-    UserDigest = require('mongoose').model('UserDigest'),
     jwt = require('jwt-simple'),
     moment = require('moment'),
     config = require('../../config/config');
@@ -44,10 +43,8 @@ exports.checkAuthToken = function (req, res, next) {
     }
 
     if (token) {
-        console.log("token: " + token);
         try {
             var decoded = jwt.decode(token, config.jwtTokenSecret);
-            console.log('decoded token: ' + JSON.stringify(decoded));
         } catch (err) {
             console.log('Error decoding token. err: ' + err);
             res.send(401, 'Error decoding token. err: ' + err);
@@ -82,7 +79,7 @@ exports.checkAuthToken = function (req, res, next) {
             //return next();
         }
     } else {
-        return res.send(401, 'x-auth-token header required to access resource');
+        return res.status(401).send('x-auth-token header required to access resource');
     }
 };
 
