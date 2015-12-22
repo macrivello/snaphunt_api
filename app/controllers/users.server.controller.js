@@ -13,6 +13,9 @@ var mongoose = Promise.promisifyAll(require('mongoose')),
 process.on(Events.gameCreated, onNewGameCreated);
 process.on(Events.themeSelected, onThemeSelected);
 
+var userPopulatedFields = ['games', 'invitations', 'profilePhotoUrl'];
+var userDigestFields = ['_id', 'profilePhoto', 'username'];
+
 function onNewGameCreated (data) {
     console.log("Adding new game to players invitations.");
     var game = data.game;
@@ -82,7 +85,6 @@ var getErrorMessage = function(err) {
 };
 
 exports.getUser = function(req, res, next, id) {
-    console.log("getUser");
     if (!id) {
         var message = "Unable to find user. Invalid id.";
         console.log(message);
@@ -91,10 +93,14 @@ exports.getUser = function(req, res, next, id) {
     }
 
     // TODO: make sure gameId is in user.games
-    // req.user should be valid since its an auth route.
     User.findByIdAsync(id)
         .then(function(user){
-            req.user = user;
+            var _user = {};
+            _user._id = user._id;
+            _user.username = user.username;
+            _user.profilePhoto = user.profilePhoto;
+
+            req.user = _user;
             next();
         }).catch(function(err){
             return res.status(500).send(err, "Error finding user by ID");
@@ -251,8 +257,8 @@ exports.create = function(req, res, next) {
 	});
 };
 
-// TODO: Refactor
 exports.list = function(req, res, next) {
+    var query;
     if (req.query.id){
         var ids = [];
 
@@ -262,28 +268,35 @@ exports.list = function(req, res, next) {
             ids.push(req.query.id);
         }
 
-        User.find({ _id : { $in : ids}}, function(err, users) {
-            if (err) {
-                return next(err);
-            }
-            else {
-                res.json(users);
-            }
-        });
+        query = User.find({ _id : { $in : ids}});
     } else {
-        User.find({}, function(err, users) {
-            if (err) {
-                return next(err);
-            }
-            else {
-                res.json(users);
-            }
-        });
+        query = User.find();
     }
+
+    // Return UserDigests if the request has non-admin authorization.
+    if (!req.user.admin) {
+        query.select(userDigestFields.join(' '));
+    }
+
+    query.exec(function(err, users) {
+        if (err) {
+            return next(err);
+        }
+        else {
+            res.json(users);
+        }
+    });
 };
 
-exports.read = function(req, res) {
-	res.json(req.user);
+exports.read = function(req, res, next) {
+    // if path is /user and req.user is valid, then return full req.user,
+    // else return digest of user id.
+    if (req.user._id) {
+        res.json(req.user);
+    } else {
+        // Invalid token
+        return res.status(401).send("No User associated with auth token.");
+    }
 };
 
 exports.userByID = function(req, res, next, id) {

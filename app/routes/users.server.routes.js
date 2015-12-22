@@ -1,9 +1,14 @@
 var users = require('../../app/controllers/users.server.controller.js');
 
 module.exports = function(router) {
+    router.route('/user')
+        //TODO Rename functions
+        .get(users.read) // ADMIN
+        .delete(users.delete);
+
     router.route('/users')
         .get(users.list) // ADMIN
-        .delete(users.deleteAll)
+        .delete(users.deleteAll);
 
     router.route('/users/:userId')
         .get(users.read)
